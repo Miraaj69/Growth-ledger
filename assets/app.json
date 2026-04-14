@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Growth Ledger",
+    "slug": "growth-ledger",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#080D1A",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#080D1A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.anushka48.growthledger"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#080D1A"
+      },
+      "package": "com.anushka48.growthledger"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "345ae8e1-13ff-4232-922e-46939a0a48a3"
+      }
+    },
+    "owner": "anushka48",
+    "plugins": [
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#080D1A",
+          "image": "./assets/splash.png",
+          "resizeMode": "contain"
+        }
+      ]
+    ]
+  }
+}
