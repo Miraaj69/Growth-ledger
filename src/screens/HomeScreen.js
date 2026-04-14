@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   actionDetail:    { fontSize: 12, color: Colors.t2, lineHeight: 17 },
   actionArrow:     { fontSize: 20, color: Colors.t3 },
   section:         { marginHorizontal: Spacing.md, marginBottom: 12 },
-  alertRow:        { flexDirection: 'row', gap: 9, padding: '10@s', paddingHorizontal: 13, borderRadius: 11, borderWidth: 1, marginBottom: 7, alignItems: 'flex-start', paddingVertical: 10 },
+  alertRow:        { flexDirection: 'row', gap: 9, padding: 10, paddingHorizontal: 13, borderRadius: 11, borderWidth: 1, marginBottom: 7, alignItems: 'flex-start', paddingVertical: 10 },
   alertIcon:       { fontSize: 15 },
   alertMsg:        { fontSize: 12, lineHeight: 19, flex: 1 },
   hscroll:         { marginLeft: Spacing.md, marginBottom: 12 },
