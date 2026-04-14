@@ -15,6 +15,8 @@ const AppContext = createContext(null);
 // ─── REDUCER ──────────────────────────────────────────────────────
 function reducer(state, action) {
   switch (action.type) {
+    case 'HYDRATE':
+      return { ...action.state };
     case 'SET':
       return { ...state, ...action.payload, lastSaved: new Date().toISOString().slice(0, 10) };
     case 'TOGGLE_ATTENDANCE': {
@@ -64,6 +66,7 @@ function reducer(state, action) {
 // ─── PROVIDER ─────────────────────────────────────────────────────
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => createInitialState());
+  const [isReady, setIsReady] = React.useState(false);
   const saveTimer = useRef(null);
   const hydrated  = useRef(false);
 
@@ -75,6 +78,7 @@ export function AppProvider({ children }) {
         dispatch({ type: 'HYDRATE', state: { ...createInitialState(), ...saved } });
       }
       hydrated.current = true;
+      setIsReady(true);
     })();
   }, []);
 
@@ -91,7 +95,7 @@ export function AppProvider({ children }) {
   const set = useCallback((payload) => dispatch({ type: 'SET', payload }), []);
 
   return (
-    <AppContext.Provider value={{ state, dispatch, set }}>
+    <AppContext.Provider value={{ state, dispatch, set, isReady }}>
       {children}
     </AppContext.Provider>
   );
