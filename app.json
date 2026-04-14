@@ -14,15 +14,21 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.growthledger.app"
+      "bundleIdentifier": "com.anushka48.growthledger"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#080D1A"
       },
-      "package": "com.growthledger.app"
+      "package": "com.anushka48.growthledger"
     },
+    "extra": {
+      "eas": {
+        "projectId": "345ae8e1-13ff-4232-922e-46939a0a48a3"
+      }
+    },
+    "owner": "anushka48",
     "plugins": [
       "expo-font",
       [
