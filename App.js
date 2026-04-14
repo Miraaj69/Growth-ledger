@@ -10,7 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
 
-import { AppProvider } from './src/store/AppContext';
+import { AppProvider, useApp } from './src/store/AppContext';
 import { Colors, Spacing, Radius } from './src/constants/theme';
 
 import HomeScreen     from './src/screens/HomeScreen';
@@ -84,7 +84,8 @@ function MainTabs() {
 }
 
 // ─── ROOT APP ─────────────────────────────────────────────────────
-export default function App() {
+function AppInner() {
+  const { isReady } = useApp();
   const [fontsLoaded] = useFonts({
     Syne_500Medium,
     Syne_600SemiBold,
@@ -96,27 +97,33 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded && isReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, isReady]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded || !isReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppProvider>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
-        <NavigationContainer theme={{ colors: { background: Colors.bg }, dark: true }}>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Main" component={MainTabs} />
-          </Stack.Navigator>
-        </NavigationContainer>
-        {/* Ambient glow background */}
-        <View style={appStyles.ambientTop} pointerEvents="none" />
-        <View style={appStyles.ambientBottom} pointerEvents="none" />
-      </AppProvider>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
+      <NavigationContainer theme={{ colors: { background: Colors.bg }, dark: true }}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Main" component={MainTabs} />
+        </Stack.Navigator>
+      </NavigationContainer>
+      {/* Ambient glow background */}
+      <View style={appStyles.ambientTop} pointerEvents="none" />
+      <View style={appStyles.ambientBottom} pointerEvents="none" />
     </GestureHandlerRootView>
+  );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppInner />
+    </AppProvider>
   );
 }
 
