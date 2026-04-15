@@ -9,6 +9,10 @@ import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold } from '@expo-g
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+<SafeAreaProvider>
+  <NavigationContainer>
 
 import { AppProvider } from './AppContext';
 import { Colors, Spacing, Radius } from './theme';
@@ -20,7 +24,31 @@ import GrowthScreen   from './GrowthScreen';
 import InsightsScreen from './InsightsScreen';
 import ProfileScreen  from './ProfileScreen';
 
-SplashScreen.preventAutoHideAsync();
+export default function App() {
+  const [fontsLoaded] = useFonts({
+    Syne_500Medium,
+    Syne_600SemiBold,
+    Syne_700Bold,
+    Syne_800ExtraBold,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+  });
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      {/* rest */}
+    </GestureHandlerRootView>
+  );
+}
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -42,7 +70,8 @@ function CustomTabBar({ state, descriptors, navigation }) {
           };
           return (
             <View key={route.key} style={tbStyles.tab}>
-              <View onStartShouldSetResponder={() => true} onResponderGrant={onPress}
+              import { Pressable } from 'react-native';
+                <Pressable onPress={onPress}>
                 style={[tbStyles.tabInner, isFocused && tbStyles.tabActive]}>
                 <Text style={[tbStyles.icon, { opacity: isFocused ? 1 : 0.35 }]}>
                   {TAB_ICONS[route.name]}
