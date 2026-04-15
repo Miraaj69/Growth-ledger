@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Growth Ledger",
-    "slug": "growth-ledger",
+    "slug": "growthledger",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,14 +14,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ajaythakur69.growth-ledger"
+      "bundleIdentifier": "com.ajaythakur69.growthledger"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#080D1A"
       },
-      "package": "com.ajaythakur69.growth-ledger"
+      "package": "com.ajaythakur69.growthledger"
     },
     "extra": {
       "eas": {
