@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Growth Ledger",
-    "slug": "miraj-sip-tracker",
+    "slug": "growth-ledger",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,21 +14,21 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.anushka48.mirajsiptracker"
+      "bundleIdentifier": "com.ajaythakur69.growthledger"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#080D1A"
       },
-      "package": "com.anushka48.mirajsiptracker"
+      "package": "com.ajaythakur69.growthledger"
     },
     "extra": {
       "eas": {
-        "projectId": "3d87c981-954d-4127-9b67-c21067492ef5"
+        "projectId": "5c1477e1-22e5-418d-bdd8-b5451ae65966"
       }
     },
-    "owner": "anushka48",
+    "owner": "ajaythakur69",
     "plugins": [
       "expo-font",
       [
