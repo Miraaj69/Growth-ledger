@@ -110,7 +110,7 @@ export const SH_Comp = memo(({ title, right, rightColor, onRight }) => {
   );
 });
 // Alias for brevity
-export const SH = SH_Comp;
+export const SectionHeader = SH_Comp;
 
 // ── PRIMARY BUTTON ────────────────────────────────────────
 export const Btn = memo(({ label, onPress, disabled, loading, color, style }) => {
