@@ -1,13 +1,13 @@
 
 import React, { useState, useMemo, memo, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, Alert, StyleSheet } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from './AppContext';
 import { useTheme } from './ThemeContext';
 import { fmt, safePct, deriveState, debtMonths, sipMaturity, sipCAGR, inflAdj, MONTHS_FULL } from './helpers';
 import { SPACING as SP, RADIUS as R } from './theme';
-import { Card, GCard, Chip, Bar, SectionHeader, Toggle, Empty, StatRow, Input, Btn, FAB, MonthPicker } from './UI';
+import { Card, GCard, Chip, Bar, SH, Toggle, Empty, StatRow, Input, Btn, FAB, MonthPicker } from './UI';
 import { DonutChart } from './Charts';
 
 const TABS = [['salary','💰 Salary'],['expenses','💳 Expenses'],['sip','📈 SIP'],['debt','🏦 Debt']];
@@ -35,7 +35,7 @@ const SalaryTab = memo(({ s, dispatch, set }) => {
   return (
     <View>
       <Card style={{ marginBottom:12 }}>
-        <SectionHeader title="Your Salary" />
+        <SH title="Your Salary" />
         <Input label="Monthly In-hand (₹)" value={s.salary||''} onChange={handleSalaryChange}
           type="numeric" prefix="₹" placeholder="Enter your salary" error={salErr} />
         <Input label="Working Days / Month" value={s.workingDays||26}
@@ -60,7 +60,7 @@ const SalaryTab = memo(({ s, dispatch, set }) => {
 
       {/* Other income sources */}
       <Card style={{ marginBottom:12 }}>
-        <SectionHeader title="Other Income Sources" right="+ Add" rightColor="#4F8CFF"
+        <SH title="Other Income Sources" right="+ Add" rightColor="#4F8CFF"
           onRight={() => dispatch({ type:'ADD_INCOME', income:{ label:'Freelance', amount:0, recurring:false } })} />
         {(s.incomes||[]).slice(1).length === 0 ? (
           <Text style={{ fontSize:13, color:T.t3, textAlign:'center', paddingVertical:12 }}>No other income sources added</Text>
@@ -85,7 +85,7 @@ const SalaryTab = memo(({ s, dispatch, set }) => {
       {/* Attendance calendar */}
       <Card style={{ marginBottom:12 }}>
         <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:SP.md }}>
-          <SectionHeader title={`${MONTHS_FULL[s.currentMonth||0]} ${s.currentYear||2025}`} />
+          <SH title={`${MONTHS_FULL[s.currentMonth||0]} ${s.currentYear||2025}`} />
           <Chip label={`${(s.attendance instanceof Set ? s.attendance : new Set()).size} present`} color="#22C55E" dot />
         </View>
         <View style={{ flexDirection:'row', marginBottom:6 }}>
