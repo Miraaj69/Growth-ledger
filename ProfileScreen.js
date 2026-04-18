@@ -1,197 +1,196 @@
-// src/screens/ProfileScreen.js
-import React, { useMemo } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet, Alert, Share } from 'react-native';
+
+import React, { useMemo, memo } from 'react';
+import { ScrollView, View, Text, Pressable, Alert, Share, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from './AppContext';
-import { C, S, R } from './theme';
-import { fmt, pct, calcScore } from './calculations';
-import { Card, GCard, Chip, Bar, SH, Toggle } from './UIComponents';
-import ScoreRing from './ScoreRing';
+import { useTheme } from './ThemeContext';
+import { fmt, safePct, calcScore } from './helpers';
+import { SPACING as SP, RADIUS as R } from './theme';
+import { Card, GCard, Chip, Bar, SH, Toggle } from './UI';
 import { clearState } from './storage';
 
 export default function ProfileScreen() {
   const { state: s, set, dispatch } = useApp();
+  const { T, mode, cycleTheme }     = useTheme();
 
-  const score        = useMemo(() => calcScore(s), [s]);
-  const scoreColor   = score.total >= 80 ? C.green : score.total >= 65 ? C.teal : score.total >= 50 ? C.blue : score.total >= 35 ? C.amber : C.red;
-  const done         = s.certifications.filter((c) => c.status === 'Done').length;
-  const totalInc     = s.incomes.reduce((a, x) => a + x.amount, 0);
+  const score = useMemo(() => calcScore(s), [s]);
+  const done  = useMemo(() => (s.certifications||[]).filter(c=>c?.status==='Done').length, [s.certifications]);
+  const totalInc = useMemo(() => (s.incomes||[]).reduce((a,x)=>a+(Number(x?.amount)||0),0), [s.incomes]);
+
   const achievements = useMemo(() => {
-    const totalSaved = s.goals.reduce((a, g) => a + g.saved, 0);
-    const sipTotal   = s.sips.reduce((a, x) => a + x.amount, 0);
-    const debtPaid   = s.debts.reduce((a, d) => a + (d.amount - d.remaining), 0);
-    const certsDone  = s.certifications.filter((c) => c.status === 'Done').length;
-    const present    = s.attendance ? s.attendance.size : 0;
+    const totalSaved = (s.goals||[]).reduce((a,g)=>a+(Number(g?.saved)||0),0);
+    const sipTotal   = (s.sips||[]).reduce((a,x)=>a+(Number(x?.amount)||0),0);
+    const debtPaid   = (s.debts||[]).reduce((a,d)=>a+((Number(d?.amount)||0)-(Number(d?.remaining)||0)),0);
+    const certsDone  = (s.certifications||[]).filter(c=>c?.status==='Done').length;
+    const present    = s.attendance instanceof Set ? s.attendance.size : 0;
     return [
-      { icon: '🥇', label: 'Saver',      desc: 'Saved ₹1L+',    unlocked: totalSaved >= 100000,            color: C.amber  },
-      { icon: '📈', label: 'Investor',   desc: 'Started SIP',   unlocked: sipTotal > 0,                     color: C.green  },
-      { icon: '💪', label: 'Debt Buster',desc: 'Paid ₹50K',     unlocked: debtPaid >= 50000,                color: C.blue   },
-      { icon: '🎓', label: 'Certified',  desc: '2+ certs',      unlocked: certsDone >= 2,                   color: C.purple },
-      { icon: '🔥', label: 'Consistent', desc: '20+ days',      unlocked: present >= 20,                    color: C.red    },
-      { icon: '👑', label: 'Elite',      desc: 'Score 85+',     unlocked: score.total >= 85,                color: C.amber  },
-      { icon: '🎯', label: 'Planner',    desc: '3 goals',       unlocked: s.goals.length >= 3,              color: C.teal   },
-      { icon: '💎', label: 'Debt-Free',  desc: 'Zero debt',     unlocked: s.debts.every((d) => d.remaining === 0), color: C.pink },
-      { icon: '🚀', label: 'High Earner',desc: '>₹1L income',  unlocked: totalInc >= 100000,                color: C.blue   },
+      {icon:'🥇',label:'Saver',      desc:'Saved ₹1L+',    unlocked:totalSaved>=100000,         color:'#F59E0B'},
+      {icon:'📈',label:'Investor',   desc:'Started SIP',   unlocked:sipTotal>0,                  color:'#22C55E'},
+      {icon:'💪',label:'Debt Buster',desc:'Paid ₹50K',     unlocked:debtPaid>=50000,             color:'#4F8CFF'},
+      {icon:'🎓',label:'Certified',  desc:'2+ certs',      unlocked:certsDone>=2,                color:'#A78BFA'},
+      {icon:'🔥',label:'Consistent', desc:'20+ days',      unlocked:present>=20,                 color:'#EF4444'},
+      {icon:'👑',label:'Elite',      desc:'Score 85+',     unlocked:score.total>=85,             color:'#F59E0B'},
+      {icon:'🎯',label:'Planner',    desc:'3 goals',       unlocked:(s.goals||[]).length>=3,     color:'#14B8A6'},
+      {icon:'💎',label:'Debt-Free',  desc:'Zero debt',     unlocked:(s.debts||[]).every(d=>(d?.remaining||0)===0)&&(s.debts||[]).length>0, color:'#EC4899'},
     ];
-  }, [s, score, totalInc]);
+  }, [s, score]);
 
   const handleExport = async () => {
     try {
-      const data = JSON.stringify({ ...s, attendance: [...(s.attendance || [])] }, null, 2);
-      await Share.share({ message: data, title: 'Growth Ledger Backup' });
-    } catch (e) {
-      Alert.alert('Export failed', e.message);
-    }
+      const data = JSON.stringify({ ...s, attendance:[...(s.attendance instanceof Set?s.attendance:new Set())] }, null, 2);
+      await Share.share({ message:data, title:'Growth Ledger Backup' });
+    } catch (e) { Alert.alert('Export failed', e.message||'Unknown error'); }
   };
 
   const handleReset = () => {
-    Alert.alert('Reset All Data', 'This will delete all your financial data. Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reset', style: 'destructive', onPress: async () => { await clearState(); dispatch({ type: 'RESET' }); } },
-    ]);
+    Alert.alert('Reset All Data','This will permanently delete all your financial data. This cannot be undone.',
+      [{ text:'Cancel', style:'cancel' }, { text:'Reset Everything', style:'destructive', onPress:async()=>{ await clearState(); dispatch({type:'RESET'}); } }]
+    );
   };
 
+  const themeLabel = mode === 'dark' ? '🌙 Dark' : mode === 'amoled' ? '⬛ AMOLED' : '☀️ Light';
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-      <View style={styles.header}>
-        <Text style={styles.pageTitle}>Profile</Text>
+    <ScrollView style={{ flex:1, backgroundColor:T.bg }} showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom:100 }}>
+
+      <View style={{ paddingTop:56, paddingHorizontal:SP.md, paddingBottom:SP.md }}>
+        <Text style={{ fontSize:27, fontWeight:'800', color:T.t1, letterSpacing:-0.5 }}>Profile</Text>
       </View>
 
       {/* HERO */}
-      <LinearGradient colors={['#0c1a3a', '#1a3a78']} style={styles.heroCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-        <View style={styles.avatar}>
-          <Text style={{ fontSize: 40 }}>👤</Text>
-        </View>
-        <Text style={styles.heroName}>HSE Professional</Text>
-        <Text style={styles.heroSub}>Safety Officer · Age {s.userAge || 28}</Text>
-        <View style={styles.heroChips}>
-          <Chip label={`Score: ${score.total}/100`} color={scoreColor} dot size="md" />
-          <Chip label={`Lv ${s.level || 1} · ${s.xpTotal || 0} XP`} color={C.amber} size="md" />
-        </View>
-        <View style={styles.heroChips}>
-          <Chip label="NEBOSH" color={C.green} />
-          <Chip label="IOSH MS" color={C.blue} />
-        </View>
-        {s.lastSaved && <Text style={styles.savedText}>✓ Auto-saved · {s.lastSaved}</Text>}
-      </LinearGradient>
+      <View style={{ marginHorizontal:SP.md, marginBottom:12 }}>
+        <LinearGradient colors={['#0c1a3a','#1a3a78']}
+          style={{ borderRadius:R.xl, padding:SP.lg, alignItems:'center', borderWidth:1, borderColor:T.border }}
+          start={{x:0,y:0}} end={{x:1,y:1}}>
+          <View style={{ width:76,height:76,borderRadius:26,backgroundColor:'rgba(255,255,255,0.12)',alignItems:'center',justifyContent:'center',marginBottom:12,borderWidth:2,borderColor:'rgba(255,255,255,0.14)' }}>
+            <Text style={{ fontSize:38 }}>👤</Text>
+          </View>
+          <Text style={{ fontSize:21, fontWeight:'800', color:'#fff', marginBottom:3 }}>Financial Profile</Text>
+          {s.userAge > 0 && <Text style={{ fontSize:13, color:'rgba(255,255,255,0.4)', marginBottom:12 }}>Age {s.userAge}</Text>}
+          <View style={{ flexDirection:'row', gap:6, flexWrap:'wrap', justifyContent:'center', marginBottom:7 }}>
+            <Chip label={`Score: ${score.total}/100`} color={score.color} dot />
+            <Chip label={`Lv ${s.level||1} · ${s.xpTotal||0} XP`} color="#F59E0B" />
+          </View>
+          {s.lastSaved && <Text style={{ fontSize:11, color:'rgba(255,255,255,0.28)', marginTop:8 }}>✓ Auto-saved · {s.lastSaved}</Text>}
+        </LinearGradient>
+      </View>
 
-      {/* STAT GRID */}
-      <View style={styles.statGrid}>
+      {/* STATS */}
+      <View style={{ flexDirection:'row', gap:8, marginHorizontal:SP.md, marginBottom:12 }}>
         {[
-          { icon: '💰', label: 'Income',  val: `₹${(totalInc / 1000).toFixed(0)}K`             },
-          { icon: '📊', label: 'SIPs',    val: s.sips.length                                    },
-          { icon: '🎓', label: 'Certs',   val: `${done}/${s.certifications.length}`             },
-        ].map((st, i) => (
-          <Card key={i} style={styles.statCard}>
-            <Text style={{ fontSize: 22, marginBottom: 5 }}>{st.icon}</Text>
-            <Text style={styles.statVal}>{st.val}</Text>
-            <Text style={styles.statLabel}>{st.label}</Text>
+          { icon:'💰', label:'Income',  val: totalInc > 0 ? fmt(totalInc) : '—'          },
+          { icon:'📊', label:'SIPs',    val: (s.sips||[]).length || '—'                  },
+          { icon:'🎯', label:'Goals',   val: (s.goals||[]).length || '—'                 },
+        ].map((st,i) => (
+          <Card key={i} style={{ flex:1, padding:SP.sm+6, alignItems:'center' }}>
+            <Text style={{ fontSize:22, marginBottom:5 }}>{st.icon}</Text>
+            <Text style={{ fontSize:17, fontWeight:'800', color:T.t1 }}>{st.val}</Text>
+            <Text style={{ fontSize:10, color:T.t3, marginTop:2 }}>{st.label}</Text>
           </Card>
         ))}
       </View>
 
       {/* ACHIEVEMENTS */}
-      <Card style={styles.section}>
-        <SH title="Achievements" right={`${achievements.filter((a) => a.unlocked).length}/${achievements.length}`} rightColor={C.amber} />
-        <View style={styles.achieveGrid}>
-          {achievements.map((a, i) => (
-            <View key={i} style={styles.achieveItem}>
-              <View style={[styles.achieveIcon, { backgroundColor: a.unlocked ? a.color + '20' : C.layer2, borderColor: a.unlocked ? a.color + '40' : C.border, opacity: a.unlocked ? 1 : 0.3 }]}>
-                <Text style={{ fontSize: 20 }}>{a.icon}</Text>
+      <View style={{ marginHorizontal:SP.md }}>
+        <Card style={{ marginBottom:12 }}>
+          <SH title="Achievements" right={`${achievements.filter(a=>a.unlocked).length}/${achievements.length}`} rightColor="#F59E0B" />
+          <View style={{ flexDirection:'row', flexWrap:'wrap', gap:10 }}>
+            {achievements.map((a,i) => (
+              <View key={i} style={{ width:'28%', alignItems:'center' }}>
+                <View style={{ width:50,height:50,borderRadius:15,alignItems:'center',justifyContent:'center',borderWidth:1,
+                  backgroundColor:a.unlocked?a.color+'22':T.l2, borderColor:a.unlocked?a.color+'44':T.border,
+                  opacity:a.unlocked?1:0.28, marginBottom:5 }}>
+                  <Text style={{ fontSize:20 }}>{a.icon}</Text>
+                </View>
+                <Text style={{ fontSize:10, fontWeight:'600', color:a.unlocked?T.t2:T.t3, textAlign:'center' }}>{a.label}</Text>
+                <Text style={{ fontSize:9, color:T.t3, textAlign:'center', marginTop:1 }}>{a.desc}</Text>
               </View>
-              <Text style={[styles.achieveLabel, { color: a.unlocked ? C.t2 : C.t3 }]}>{a.label}</Text>
-              <Text style={styles.achieveDesc}>{a.desc}</Text>
+            ))}
+          </View>
+        </Card>
+      </View>
+
+      {/* THEME */}
+      <View style={{ marginHorizontal:SP.md }}>
+        <Card style={{ marginBottom:12 }}>
+          <SH title="Appearance" />
+          <Pressable onPress={cycleTheme} style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingVertical:SP.sm }}>
+            <View style={{ flexDirection:'row', gap:12, alignItems:'center' }}>
+              <Text style={{ fontSize:19 }}>🎨</Text>
+              <View>
+                <Text style={{ fontSize:14, color:T.t1 }}>Theme</Text>
+                <Text style={{ fontSize:12, color:T.t3 }}>Tap to cycle themes</Text>
+              </View>
             </View>
-          ))}
-        </View>
-      </Card>
+            <Chip label={themeLabel} color="#4F8CFF" />
+          </Pressable>
+        </Card>
+      </View>
 
       {/* PRIVACY */}
-      <Card style={styles.section}>
-        <SH title="Privacy & Security" />
-        {[
-          { key: 'maskAmounts',    icon: '👁️', label: 'Mask Amounts',    sub: 'Hide numbers in public' },
-          { key: 'biometricLock', icon: '🔐', label: 'Biometric Lock',  sub: 'Face ID / Fingerprint'  },
-        ].map((n, i) => (
-          <View key={n.key} style={[styles.settingRow, i === 0 && styles.settingBorder]}>
-            <View style={styles.settingLeft}>
-              <Text style={{ fontSize: 19 }}>{n.icon}</Text>
-              <View>
-                <Text style={styles.settingLabel}>{n.label}</Text>
-                <Text style={styles.settingSub}>{n.sub}</Text>
+      <View style={{ marginHorizontal:SP.md }}>
+        <Card style={{ marginBottom:12 }}>
+          <SH title="Privacy & Security" />
+          {[
+            { key:'maskAmounts',   icon:'👁️', label:'Mask Amounts',   sub:'Hide numbers in public' },
+            { key:'biometricLock', icon:'🔐', label:'Biometric Lock', sub:'Face ID / Fingerprint'  },
+          ].map((n,i) => (
+            <View key={n.key} style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingVertical:SP.sm+4, borderBottomWidth:i===0?1:0, borderBottomColor:T.border }}>
+              <View style={{ flexDirection:'row', gap:12, alignItems:'center' }}>
+                <Text style={{ fontSize:19 }}>{n.icon}</Text>
+                <View>
+                  <Text style={{ fontSize:14, color:T.t1 }}>{n.label}</Text>
+                  <Text style={{ fontSize:12, color:T.t3 }}>{n.sub}</Text>
+                </View>
               </View>
+              <Toggle value={s[n.key]||false} onChange={()=>set({[n.key]:!s[n.key]})} />
             </View>
-            <Toggle value={s[n.key] || false} onChange={() => set({ [n.key]: !s[n.key] })} />
-          </View>
-        ))}
-      </Card>
+          ))}
+        </Card>
+      </View>
 
-      {/* REMINDERS */}
-      <Card style={styles.section}>
-        <SH title="Reminders" />
-        {[
-          { key: 'salary', icon: '💰', label: 'Salary Day Reminder'  },
-          { key: 'sip',    icon: '📈', label: 'SIP Investment Alert'  },
-          { key: 'emi',    icon: '🏦', label: 'EMI Due Date Alert'    },
-          { key: 'weekly', icon: '📊', label: 'Weekly AI Report'      },
-        ].map((n, i, arr) => (
-          <View key={n.key} style={[styles.settingRow, i < arr.length - 1 && styles.settingBorder]}>
-            <View style={styles.settingLeft}>
-              <Text style={{ fontSize: 19 }}>{n.icon}</Text>
-              <Text style={styles.settingLabel}>{n.label}</Text>
+      {/* NOTIFICATIONS */}
+      <View style={{ marginHorizontal:SP.md }}>
+        <Card style={{ marginBottom:12 }}>
+          <SH title="Reminders" />
+          {[
+            {key:'salary',icon:'💰',label:'Salary Day'},
+            {key:'sip',   icon:'📈',label:'SIP Alert'},
+            {key:'emi',   icon:'🏦',label:'EMI Due Date'},
+            {key:'weekly',icon:'📊',label:'Weekly Report'},
+          ].map((n,i,arr) => (
+            <View key={n.key} style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingVertical:SP.sm+4, borderBottomWidth:i<arr.length-1?1:0, borderBottomColor:T.border }}>
+              <View style={{ flexDirection:'row', gap:12, alignItems:'center' }}>
+                <Text style={{ fontSize:19 }}>{n.icon}</Text>
+                <Text style={{ fontSize:14, color:T.t1 }}>{n.label}</Text>
+              </View>
+              <Toggle value={(s.notifs||{})[n.key]!==false} onChange={()=>set({notifs:{...(s.notifs||{}),[n.key]:!(s.notifs||{})[n.key]}})} />
             </View>
-            <Toggle value={(s.notifs || {})[n.key] !== false} onChange={() => set({ notifs: { ...(s.notifs || {}), [n.key]: !(s.notifs || {})[n.key] } })} />
-          </View>
-        ))}
-      </Card>
+          ))}
+        </Card>
+      </View>
 
       {/* ACTIONS */}
-      <Card style={styles.section}>
-        <SH title="Data & Actions" />
-        {[
-          { icon: '💾', label: 'Export JSON Backup',   right: '↓ Save',  action: handleExport },
-          { icon: '🎯', label: 'Set Financial Goals',  right: '→'                             },
-          { icon: '🔄', label: 'Reset All Data',       right: 'Reset',   action: handleReset  },
-          { icon: 'ℹ️', label: 'About Growth Ledger',  right: 'v6.0'                          },
-        ].map((it, i, arr) => (
-          <Pressable key={i} onPress={it.action} style={[styles.actionRow, i < arr.length - 1 && styles.settingBorder]}>
-            <View style={styles.settingLeft}>
-              <Text style={{ fontSize: 19 }}>{it.icon}</Text>
-              <Text style={styles.settingLabel}>{it.label}</Text>
-            </View>
-            <Text style={[styles.actionRight, it.action && { color: C.blue }]}>{it.right}</Text>
-          </Pressable>
-        ))}
-      </Card>
+      <View style={{ marginHorizontal:SP.md }}>
+        <Card style={{ marginBottom:12 }}>
+          <SH title="Data & Actions" />
+          {[
+            {icon:'💾',label:'Export JSON Backup', right:'↓ Save',  action:handleExport},
+            {icon:'🔄',label:'Reset All Data',     right:'Reset',   action:handleReset, danger:true},
+            {icon:'ℹ️',label:'About Growth Ledger',right:'v8.0'},
+          ].map((it,i,arr) => (
+            <Pressable key={i} onPress={it.action}
+              style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingVertical:SP.sm+6, borderBottomWidth:i<arr.length-1?1:0, borderBottomColor:T.border }}>
+              <View style={{ flexDirection:'row', gap:12, alignItems:'center' }}>
+                <Text style={{ fontSize:19 }}>{it.icon}</Text>
+                <Text style={{ fontSize:14, color:it.danger?'#EF4444':T.t1 }}>{it.label}</Text>
+              </View>
+              <Text style={{ fontSize:13, color:it.action?'#4F8CFF':T.t3, fontWeight:it.action?'600':'400' }}>{it.right}</Text>
+            </Pressable>
+          ))}
+        </Card>
+      </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: C.bg },
-  header:       { paddingTop: 56, paddingHorizontal: S.md, paddingBottom: S.md },
-  pageTitle:    { fontFamily: 'Syne_800ExtraBold', fontSize: 27, color: C.t1, letterSpacing: -0.5 },
-  heroCard:     { marginHorizontal: S.md, marginBottom: 12, borderRadius: R.xl, padding: S.lg, alignItems: 'center', borderWidth: 1, borderColor: C.border },
-  avatar:       { width: 76, height: 76, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.14)' },
-  heroName:     { fontFamily: 'Syne_800ExtraBold', fontSize: 21, color: C.t1, marginBottom: 3 },
-  heroSub:      { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 12 },
-  heroChips:    { flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 7 },
-  savedText:    { fontSize: 11, color: 'rgba(255,255,255,0.28)', marginTop: 8 },
-  statGrid:     { flexDirection: 'row', gap: 8, marginHorizontal: S.md, marginBottom: 12 },
-  statCard:     { flex: 1, padding: S.sm + 6, alignItems: 'center' },
-  statVal:      { fontFamily: 'Syne_800ExtraBold', fontSize: 17, color: C.t1 },
-  statLabel:    { fontSize: 10, color: C.t3, marginTop: 2 },
-  section:      { marginHorizontal: S.md, marginBottom: 12 },
-  achieveGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  achieveItem:  { width: '28%', alignItems: 'center' },
-  achieveIcon:  { width: 50, height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginBottom: 5 },
-  achieveLabel: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
-  achieveDesc:  { fontSize: 9, color: C.t3, textAlign: 'center', marginTop: 1 },
-  settingRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13 },
-  settingBorder:{ borderBottomWidth: 1, borderBottomColor: C.border },
-  settingLeft:  { flexDirection: 'row', gap: 11, alignItems: 'center', flex: 1 },
-  settingLabel: { fontSize: 14, color: C.t1 },
-  settingSub:   { fontSize: 12, color: C.t3 },
-  actionRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
-  actionRight:  { fontSize: 13, color: C.t3 },
-});
