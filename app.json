@@ -1,17 +1,44 @@
 {
   "expo": {
     "name": "Growth Ledger",
-    "slug": "miraj-sip-tracker",
+    "slug": "growth-ledger",
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#080D1A",
-    "splash": { "image": "./assets/splash.png", "resizeMode": "contain", "backgroundColor": "#080D1A" },
-    "ios": { "supportsTablet": false, "bundleIdentifier": "com.anushka48.mirajsiptracker" },
-    "android": { "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#080D1A" }, "package": "com.anushka48.mirajsiptracker" },
-    "extra": { "eas": { "projectId": "3d87c981-954d-4127-9b67-c21067492ef5" } },
-    "owner": "anushka48",
-    "plugins": ["expo-font", ["expo-splash-screen", { "backgroundColor": "#080D1A", "image": "./assets/splash.png", "resizeMode": "contain" }]]
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#080D1A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ajaythakur69.growthledger"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#080D1A"
+      },
+      "package": "com.ajaythakur69.growthledger"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5c1477e1-22e5-418d-bdd8-b5451ae65966"
+      }
+    },
+    "owner": "ajaythakur69",
+    "plugins": [
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#080D1A",
+          "image": "./assets/splash.png",
+          "resizeMode": "contain"
+        }
+      ]
+    ]
   }
 }
