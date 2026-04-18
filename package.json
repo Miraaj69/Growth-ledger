@@ -1,12 +1,11 @@
 {
   "name": "growth-ledger",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "ios": "expo start --ios"
   },
   "dependencies": {
     "expo": "~52.0.46",
@@ -15,6 +14,7 @@
     "expo-blur": "~14.0.3",
     "expo-linear-gradient": "~14.0.2",
     "expo-font": "~13.0.4",
+    "expo-haptics": "~14.0.1",
     "@expo-google-fonts/syne": "^0.2.3",
     "@expo-google-fonts/dm-sans": "^0.2.3",
     "react": "18.3.1",

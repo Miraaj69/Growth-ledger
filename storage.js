@@ -1,40 +1,22 @@
 // storage.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
+const KEY = 'gl_v7';
 
-const KEY = 'gl_state_v6';
-
-export const saveState = async (state) => {
+export const save = async (state) => {
   try {
-    const serialized = JSON.stringify({
-      ...state,
-      attendance: Array.from(state.attendance || []),
-    });
-    await AsyncStorage.setItem(KEY, serialized);
-    return true;
-  } catch (e) {
-    console.warn('Storage save failed:', e);
-    return false;
-  }
+    await AsyncStorage.setItem(KEY, JSON.stringify({ ...state, attendance: [...(state.attendance instanceof Set ? state.attendance : new Set())] }));
+  } catch(e) { console.warn('save:', e); }
 };
 
-export const loadState = async () => {
+export const load = async () => {
   try {
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return { ...parsed, attendance: new Set(parsed.attendance || []) };
-  } catch (e) {
-    console.warn('Storage load failed:', e);
-    return null;
-  }
+    const p = JSON.parse(raw);
+    return { ...p, attendance: new Set(p.attendance || []) };
+  } catch(e) { return null; }
 };
 
-export const clearState = async () => {
-  try {
-    await AsyncStorage.removeItem(KEY);
-    return true;
-  } catch (e) {
-    console.warn('Storage clear failed:', e);
-    return false;
-  }
+export const clear = async () => {
+  try { await AsyncStorage.removeItem(KEY); } catch(e) {}
 };

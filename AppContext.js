@@ -1,68 +1,96 @@
-// AppContext.js
+// AppContext.js — Single source of truth. All screens read from here.
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
-import { saveState, loadState } from './storage';
-import { createInitialState } from './initialState';
+import { save, load } from './storage';
+import { INIT } from './initialState';
 
-const AppContext = createContext(null);
+const Ctx = createContext(null);
 
+// ── REDUCER ───────────────────────────────────────────────────
 function reducer(state, action) {
   switch (action.type) {
-    case 'SET':             return { ...state, ...action.payload, lastSaved: new Date().toISOString().slice(0, 10) };
-    case 'TOGGLE_ATTENDANCE': {
-      const att = new Set(state.attendance);
+    // Generic patch — most common
+    case 'SET': return { ...state, ...action.payload, lastSaved: new Date().toISOString().slice(0,10) };
+
+    // Attendance toggle + XP
+    case 'TOGGLE_ATT': {
+      const att = new Set(state.attendance instanceof Set ? state.attendance : new Set());
       att.has(action.day) ? att.delete(action.day) : att.add(action.day);
-      return { ...state, attendance: att, xpTotal: (state.xpTotal || 0) + (att.has(action.day) ? 10 : -10) };
+      const xpDelta = att.has(action.day) ? 10 : -10;
+      return { ...state, attendance: att, xpTotal: Math.max(0, (state.xpTotal||0) + xpDelta) };
     }
-    case 'ADD_SIP':        return { ...state, sips: [...state.sips, action.sip] };
-    case 'UPDATE_SIP':     return { ...state, sips: state.sips.map((s, i) => i === action.idx ? { ...s, ...action.patch } : s) };
-    case 'REMOVE_SIP':     return { ...state, sips: state.sips.filter((_, i) => i !== action.idx) };
-    case 'ADD_DEBT':       return { ...state, debts: [...state.debts, action.debt] };
-    case 'UPDATE_DEBT':    return { ...state, debts: state.debts.map((d, i) => i === action.idx ? { ...d, ...action.patch } : d) };
-    case 'REMOVE_DEBT':    return { ...state, debts: state.debts.filter((_, i) => i !== action.idx) };
-    case 'ADD_EXPENSE':    return { ...state, manualExpenses: [...state.manualExpenses, action.expense] };
-    case 'UPDATE_EXPENSE': return { ...state, manualExpenses: state.manualExpenses.map((e, i) => i === action.idx ? { ...e, ...action.patch } : e) };
-    case 'REMOVE_EXPENSE': return { ...state, manualExpenses: state.manualExpenses.filter((_, i) => i !== action.idx) };
-    case 'UPDATE_EXPENSE_PCT': return { ...state, expenses: state.expenses.map((e, i) => i === action.idx ? { ...e, pct: action.pct } : e) };
-    case 'ADD_INCOME':     return { ...state, incomes: [...state.incomes, action.income] };
-    case 'REMOVE_INCOME':  return { ...state, incomes: state.incomes.filter((_, i) => i !== action.idx) };
-    case 'UPDATE_INCOME':  return { ...state, incomes: state.incomes.map((inc, i) => i === action.idx ? { ...inc, ...action.patch } : inc) };
-    case 'HYDRATE':        return { ...action.state };
-    case 'RESET':          return createInitialState();
-    default:               return state;
+
+    // Salary update — also updates incomes[0]
+    case 'SET_SALARY': {
+      const incomes = state.incomes.map((inc, i) => i === 0 ? { ...inc, amount: action.salary } : inc);
+      return { ...state, salary: action.salary, incomes };
+    }
+
+    // Income CRUD
+    case 'ADD_INCOME':    return { ...state, incomes: [...state.incomes, action.income] };
+    case 'UPD_INCOME':    return { ...state, incomes: state.incomes.map((x,i) => i===action.idx ? {...x,...action.patch} : x) };
+    case 'DEL_INCOME':    return { ...state, incomes: state.incomes.filter((_,i) => i!==action.idx) };
+
+    // SIP CRUD
+    case 'ADD_SIP':    return { ...state, sips: [...state.sips, action.sip] };
+    case 'UPD_SIP':    return { ...state, sips: state.sips.map((x,i) => i===action.idx ? {...x,...action.patch} : x) };
+    case 'DEL_SIP':    return { ...state, sips: state.sips.filter((_,i) => i!==action.idx) };
+
+    // Debt CRUD
+    case 'ADD_DEBT':   return { ...state, debts: [...state.debts, action.debt] };
+    case 'UPD_DEBT':   return { ...state, debts: state.debts.map((x,i) => i===action.idx ? {...x,...action.patch} : x) };
+    case 'DEL_DEBT':   return { ...state, debts: state.debts.filter((_,i) => i!==action.idx) };
+
+    // Expense split
+    case 'UPD_EXP_PCT': return { ...state, expenses: state.expenses.map((e,i) => i===action.idx ? {...e,pct:action.pct} : e) };
+
+    // Manual expense CRUD
+    case 'ADD_MEXP':  return { ...state, manualExpenses: [...state.manualExpenses, action.exp] };
+    case 'UPD_MEXP':  return { ...state, manualExpenses: state.manualExpenses.map((x,i) => i===action.idx ? {...x,...action.patch} : x) };
+    case 'DEL_MEXP':  return { ...state, manualExpenses: state.manualExpenses.filter((_,i) => i!==action.idx) };
+
+    // Transaction
+    case 'ADD_TXN':   return { ...state, transactions: [action.txn, ...state.transactions].slice(0,50) };
+
+    // Hydrate from storage
+    case 'HYDRATE':   return { ...action.state };
+
+    // Full reset
+    case 'RESET':     return INIT();
+
+    default: return state;
   }
 }
 
+// ── PROVIDER ──────────────────────────────────────────────────
 export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, null, () => createInitialState());
-  const saveTimer = useRef(null);
-  const hydrated  = useRef(false);
+  const [state, dispatch] = useReducer(reducer, null, INIT);
+  const timer    = useRef(null);
+  const ready    = useRef(false);
 
+  // Load from AsyncStorage on mount
   useEffect(() => {
     (async () => {
-      const saved = await loadState();
-      if (saved) dispatch({ type: 'HYDRATE', state: { ...createInitialState(), ...saved } });
-      hydrated.current = true;
+      const saved = await load();
+      if (saved) dispatch({ type: 'HYDRATE', state: { ...INIT(), ...saved, attendance: new Set(saved.attendance || []) } });
+      ready.current = true;
     })();
   }, []);
 
+  // Auto-save debounced 800ms
   useEffect(() => {
-    if (!hydrated.current) return;
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => saveState(state), 800);
-    return () => clearTimeout(saveTimer.current);
+    if (!ready.current) return;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => save(state), 800);
+    return () => clearTimeout(timer.current);
   }, [state]);
 
   const set = useCallback((payload) => dispatch({ type: 'SET', payload }), []);
 
-  return (
-    <AppContext.Provider value={{ state, dispatch, set }}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <Ctx.Provider value={{ state, dispatch, set }}>{children}</Ctx.Provider>;
 }
 
 export const useApp = () => {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp must be used within AppProvider');
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error('useApp outside AppProvider');
   return ctx;
 };
