@@ -5,11 +5,11 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from './AppContext';
-import { Colors, Spacing, Radius, Typography, Shadows } from './theme';
-import { inr, pct, sipMaturity, cagrCalc, inflationAdjust, debtMonths, MONTHS_FULL } from './calculations';
+import { C, S, R, Sh } from './theme';
+import { fmt, pct, sipMaturity, sipCAGR, inflAdj, debtMonths, MONTHS_FULL } from './calculations';
 import {
-  Card, GradientCard, Chip, ProgressBar, SectionHeader, Toggle,
-  EmptyState, StatRow, InputField,
+  Card, GCard, Chip, Bar, SH, Toggle,
+  Empty, StatRow, Input,
 } from './UIComponents';
 import DonutChart from './DonutChart';
 import MonthPicker from './MonthPicker';
@@ -30,13 +30,13 @@ export default function MoneyScreen() {
   const perDay  = s.salary / s.workingDays;
 
   const fabActions = {
-    sip:  [{ icon: '📈', label: 'Add SIP',     color: Colors.green, action: () => dispatch({ type: 'ADD_SIP',  sip:  { name: 'New SIP',   amount: 1000, returns: 12, months: 12, goalLink: null } }) }],
-    debt: [{ icon: '🏦', label: 'Add Debt',    color: Colors.red,   action: () => dispatch({ type: 'ADD_DEBT', debt: { name: 'New Loan',  amount: 50000, remaining: 50000, emi: 3000, rate: 10, dueDate: 5 } }) }],
-    expenses: [{ icon: '💳', label: 'Add Expense', color: Colors.amber, action: () => dispatch({ type: 'ADD_EXPENSE', expense: { cat: 'Other', amount: 0, icon: '💸', color: Colors.t3, recurring: false } }) }],
+    sip:  [{ icon: '📈', label: 'Add SIP',     color: C.green, action: () => dispatch({ type: 'ADD_SIP',  sip:  { name: 'New SIP',   amount: 1000, returns: 12, months: 12, goalLink: null } }) }],
+    debt: [{ icon: '🏦', label: 'Add Debt',    color: C.red,   action: () => dispatch({ type: 'ADD_DEBT', debt: { name: 'New Loan',  amount: 50000, remaining: 50000, emi: 3000, rate: 10, dueDate: 5 } }) }],
+    expenses: [{ icon: '💳', label: 'Add Expense', color: C.amber, action: () => dispatch({ type: 'ADD_EXPENSE', expense: { cat: 'Other', amount: 0, icon: '💸', color: C.t3, recurring: false } }) }],
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* HEADER */}
         <View style={styles.header}>
@@ -64,10 +64,10 @@ export default function MoneyScreen() {
 
         {s.autoAdjust && (
           <View style={styles.suggestBox}>
-            <Text style={[styles.suggestTitle, { color: Colors.green }]}>🤖 Smart Suggestions</Text>
+            <Text style={[styles.suggestTitle, { color: C.green }]}>🤖 Smart Suggestions</Text>
             {[
-              `Increase SIP to ${inr(s.sips.reduce((a, x) => a + x.amount, 0) + 1000)} — ₹1K more/mo rule`,
-              `Reduce Wants from ${s.expenses.find((e) => e.label === 'Wants')?.pct || 30}% → 25%, save ${inr(s.salary * 5 / 100)}/mo`,
+              `Increase SIP to ${fmt(s.sips.reduce((a, x) => a + x.amount, 0) + 1000)} — ₹1K more/mo rule`,
+              `Reduce Wants from ${s.expenses.find((e) => e.label === 'Wants')?.pct || 30}% → 25%, save ${fmt(s.salary * 5 / 100)}/mo`,
               s.debts.length > 0 ? `Pay ₹2K extra on ${s.debts.reduce((a, d) => d.rate > a.rate ? d : a, s.debts[0]).name}` : 'Great — no high-rate debt!',
             ].map((t, i) => <Text key={i} style={styles.suggestItem}>• {t}</Text>)}
           </View>
@@ -110,16 +110,16 @@ function SalaryTab({ s, set, dispatch, present, perDay }) {
     <View style={styles.tabContent}>
       {/* Setup */}
       <Card style={styles.section}>
-        <SectionHeader title="Setup" />
-        <InputField label="Monthly In-hand (₹)" value={s.salary} onChangeText={(v) => set({ salary: +v || 0 })} keyboardType="numeric" prefix="₹" />
-        <InputField label="Working Days / Month"  value={s.workingDays} onChangeText={(v) => set({ workingDays: +v || 26 })} keyboardType="numeric" />
+        <SH title="Setup" />
+        <Input label="Monthly In-hand (₹)" value={s.salary} onChangeText={(v) => set({ salary: +v || 0 })} keyboardType="numeric" prefix="₹" />
+        <Input label="Working Days / Month"  value={s.workingDays} onChangeText={(v) => set({ workingDays: +v || 26 })} keyboardType="numeric" />
         <Text style={styles.subSectionLabel}>Other Income Sources</Text>
         {s.incomes.filter((_, i) => i > 0).map((inc, i) => (
           <View key={i} style={styles.incomeRow}>
             <Text style={{ fontSize: 18 }}>💼</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.incomeLabel} numberOfLines={1}>{inc.label}</Text>
-              <Text style={[styles.incomeAmt, { color: Colors.green }]}>{inr(inc.amount)}</Text>
+              <Text style={[styles.incomeAmt, { color: C.green }]}>{fmt(inc.amount)}</Text>
             </View>
             <Toggle value={inc.recurring} onChange={() => dispatch({ type: 'UPDATE_INCOME', idx: i + 1, patch: { recurring: !inc.recurring } })} />
             <Pressable onPress={() => dispatch({ type: 'REMOVE_INCOME', idx: i + 1 })}>
@@ -135,9 +135,9 @@ function SalaryTab({ s, set, dispatch, present, perDay }) {
       {/* Live stats */}
       <View style={styles.statRow3}>
         {[
-          { l: 'Per Day', v: inr(perDay),                                  c: Colors.blue  },
-          { l: 'Earned',  v: inr(perDay * present),                        c: Colors.green },
-          { l: 'Lost',    v: inr(perDay * (s.workingDays - present)),       c: Colors.red   },
+          { l: 'Per Day', v: fmt(perDay),                                  c: C.blue  },
+          { l: 'Earned',  v: fmt(perDay * present),                        c: C.green },
+          { l: 'Lost',    v: fmt(perDay * (s.workingDays - present)),       c: C.red   },
         ].map((x, i) => (
           <Card key={i} style={styles.statCard}>
             <Text style={[styles.statCardVal, { color: x.c }]}>{x.v}</Text>
@@ -149,8 +149,8 @@ function SalaryTab({ s, set, dispatch, present, perDay }) {
       {/* Calendar */}
       <Card style={styles.section}>
         <View style={styles.calHeader}>
-          <SectionHeader title={`${MONTHS_FULL[s.currentMonth]} ${s.currentYear}`} />
-          <Chip label={`${present} present`} color={Colors.green} dot />
+          <SH title={`${MONTHS_FULL[s.currentMonth]} ${s.currentYear}`} />
+          <Chip label={`${present} present`} color={C.green} dot />
         </View>
         <View style={styles.dayRow}>
           {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
@@ -168,15 +168,15 @@ function SalaryTab({ s, set, dispatch, present, perDay }) {
                 onPress={() => !wknd && toggle(d)}
                 style={[
                   styles.dayCell,
-                  on  && { backgroundColor: Colors.green + '28', borderColor: Colors.green + '44' },
-                  isT && !on && { backgroundColor: Colors.blue + '22',  borderColor: Colors.blue  + '44' },
+                  on  && { backgroundColor: C.green + '28', borderColor: C.green + '44' },
+                  isT && !on && { backgroundColor: C.blue + '22',  borderColor: C.blue  + '44' },
                 ]}
               >
                 <Text style={[
                   styles.dayNum,
-                  on   && { color: Colors.green },
-                  isT  && !on && { color: Colors.blue, fontWeight: '700' },
-                  wknd && { color: Colors.t3 + '66' },
+                  on   && { color: C.green },
+                  isT  && !on && { color: C.blue, fontWeight: '700' },
+                  wknd && { color: C.t3 + '66' },
                 ]}>{d}</Text>
               </Pressable>
             );
@@ -206,7 +206,7 @@ function ExpensesTab({ s, dispatch }) {
                   <Text style={styles.donutLegLabel}>{e.label}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={[styles.donutLegVal, { color: e.color }]}>{inr(s.salary * e.pct / 100)}</Text>
+                  <Text style={[styles.donutLegVal, { color: e.color }]}>{fmt(s.salary * e.pct / 100)}</Text>
                   <Text style={styles.donutLegPct}>{e.pct}%</Text>
                 </View>
               </View>
@@ -217,11 +217,11 @@ function ExpensesTab({ s, dispatch }) {
 
       {/* Sliders */}
       {s.expenses.map((e, i) => (
-        <Card key={i} style={[styles.section, { paddingBottom: Spacing.md }]}>
+        <Card key={i} style={[styles.section, { paddingBottom: S.md }]}>
           <View style={styles.sliderHeader}>
             <View>
               <Text style={styles.sliderTitle}>{e.label}</Text>
-              <Text style={styles.sliderSub}>{inr(s.salary * e.pct / 100)} / month</Text>
+              <Text style={styles.sliderSub}>{fmt(s.salary * e.pct / 100)} / month</Text>
             </View>
             <View style={[styles.sliderPctBadge, { backgroundColor: e.color + '22' }]}>
               <Text style={[styles.sliderPct, { color: e.color }]}>{e.pct}%</Text>
@@ -233,7 +233,7 @@ function ExpensesTab({ s, dispatch }) {
               <Text style={styles.sliderBtnText}>−</Text>
             </Pressable>
             <View style={{ flex: 1 }}>
-              <ProgressBar value={e.pct} total={80} color={e.color} height={6} />
+              <Bar value={e.pct} total={80} color={e.color} height={6} />
             </View>
             <Pressable onPress={() => dispatch({ type: 'UPDATE_EXPENSE_PCT', idx: i, pct: Math.min(80, e.pct + 1) })} style={styles.sliderBtn}>
               <Text style={styles.sliderBtnText}>+</Text>
@@ -244,18 +244,18 @@ function ExpensesTab({ s, dispatch }) {
 
       {/* Manual expenses */}
       <Text style={styles.subSectionLabelOuter}>Manual Expenses</Text>
-      <View style={[styles.section, { backgroundColor: total > budget ? Colors.redD : Colors.greenD, borderRadius: Radius.md, padding: Spacing.sm + 4, marginBottom: Spacing.sm, flexDirection: 'row', justifyContent: 'space-between' }]}>
-        <Text style={{ fontSize: 13, color: Colors.t2 }}>Spent vs budget</Text>
-        <Text style={{ fontWeight: '700', fontSize: 13, color: total > budget ? Colors.red : Colors.green }}>{inr(total)} / {inr(budget)}</Text>
+      <View style={[styles.section, { backgroundColor: total > budget ? C.redD : C.greenD, borderRadius: R.md, padding: S.sm + 4, marginBottom: S.sm, flexDirection: 'row', justifyContent: 'space-between' }]}>
+        <Text style={{ fontSize: 13, color: C.t2 }}>Spent vs budget</Text>
+        <Text style={{ fontWeight: '700', fontSize: 13, color: total > budget ? C.red : C.green }}>{fmt(total)} / {fmt(budget)}</Text>
       </View>
       {s.manualExpenses.map((ex, i) => (
         <View key={i} style={styles.manExpRow}>
           <Text style={{ fontSize: 20 }}>{ex.icon}</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.manExpCat}>{ex.cat}</Text>
-            {ex.recurring && <Chip label="Auto" color={Colors.teal} />}
+            {ex.recurring && <Chip label="Auto" color={C.teal} />}
           </View>
-          <Text style={[styles.manExpAmt, { color: ex.color }]}>{inr(ex.amount)}</Text>
+          <Text style={[styles.manExpAmt, { color: ex.color }]}>{fmt(ex.amount)}</Text>
           <Toggle value={ex.recurring} onChange={() => dispatch({ type: 'UPDATE_EXPENSE', idx: i, patch: { recurring: !ex.recurring } })} />
           <Pressable onPress={() => dispatch({ type: 'REMOVE_EXPENSE', idx: i })}>
             <Text style={styles.removeBtn}>×</Text>
@@ -271,7 +271,7 @@ function SipTab({ s, dispatch }) {
   if (s.sips.length === 0) {
     return (
       <View style={styles.tabContent}>
-        <EmptyState icon="📈" title="No SIPs added" sub="Start your wealth-building journey. ₹500/mo today = ₹1L+ in 10 years." cta="Add first SIP" onCta={() => dispatch({ type: 'ADD_SIP', sip: { name: 'Nifty 50 Index', amount: 1000, returns: 13, months: 24, goalLink: null } })} />
+        <Empty icon="📈" title="No SIPs added" sub="Start your wealth-building journey. ₹500/mo today = ₹1L+ in 10 years." cta="Add first SIP" onCta={() => dispatch({ type: 'ADD_SIP', sip: { name: 'Nifty 50 Index', amount: 1000, returns: 13, months: 24, goalLink: null } })} />
       </View>
     );
   }
@@ -282,48 +282,48 @@ function SipTab({ s, dispatch }) {
   return (
     <View style={styles.tabContent}>
       <View style={styles.row2}>
-        <LinearGradient colors={['#052e16', Colors.green + 'cc']} style={[styles.sipSummCard, { borderWidth: 1, borderColor: Colors.border }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <LinearGradient colors={['#052e16', C.green + 'cc']} style={[styles.sipSummCard, { borderWidth: 1, borderColor: C.border }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <Text style={styles.sipSummLabel}>Total SIP/mo</Text>
-          <Text style={styles.sipSummVal}>{inr(total)}</Text>
+          <Text style={styles.sipSummVal}>{fmt(total)}</Text>
         </LinearGradient>
-        <LinearGradient colors={['#0c1a4e', Colors.blue + 'cc']} style={[styles.sipSummCard, { borderWidth: 1, borderColor: Colors.border }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <LinearGradient colors={['#0c1a4e', C.blue + 'cc']} style={[styles.sipSummCard, { borderWidth: 1, borderColor: C.border }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <Text style={styles.sipSummLabel}>Total Corpus</Text>
-          <Text style={styles.sipSummVal}>{inr(corpus)}</Text>
+          <Text style={styles.sipSummVal}>{fmt(corpus)}</Text>
         </LinearGradient>
       </View>
 
       {s.sips.map((si, i) => {
         const mat       = sipMaturity(si.amount, si.months, si.returns);
         const invest    = si.amount * si.months;
-        const inflAdj   = inflationAdjust(mat, Math.round(si.months / 12));
-        const cagr      = cagrCalc(invest, mat, si.months / 12);
+        const inflAdjVal = inflAdj(mat, Math.round(si.months / 12));
+        const cagr      = sipCAGR(si.amount * si.months, sipMaturity(si.amount, si.months, si.returns), si.months / 12 || 1);
         return (
           <Card key={i} style={styles.section}>
             <View style={styles.sipHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.sipName}>{si.name}</Text>
                 <View style={styles.chipRow}>
-                  <Chip label={`${si.returns}% p.a.`} color={Colors.green} />
-                  {si.goalLink && <Chip label={`→ ${si.goalLink}`} color={Colors.purple} />}
+                  <Chip label={`${si.returns}% p.a.`} color={C.green} />
+                  {si.goalLink && <Chip label={`→ ${si.goalLink}`} color={C.purple} />}
                 </View>
               </View>
-              <Text style={styles.sipAmt}>{inr(si.amount)}</Text>
+              <Text style={styles.sipAmt}>{fmt(si.amount)}</Text>
             </View>
 
             <View style={styles.sipStats}>
-              <StatRow label="Invested"              value={inr(invest)} />
-              <StatRow label="Maturity (XIRR)"       value={inr(mat)}      valueColor={Colors.green} />
-              <StatRow label="Inflation-adjusted"     value={inr(inflAdj)}  valueColor={Colors.amber} />
-              <StatRow label="CAGR"                  value={`${cagr}%`}    valueColor={Colors.blue} last />
+              <StatRow label="Invested"              value={fmt(invest)} />
+              <StatRow label="Maturity (XIRR)"       value={fmt(mat)}      valueColor={C.green} />
+              <StatRow label="Inflation-adjusted"     value={fmt(inflAdjVal)}  valueColor={C.amber} />
+              <StatRow label="CAGR"                  value={`${cagr}%`}    valueColor={C.blue} last />
             </View>
 
-            <ProgressBar value={invest} total={mat} color={Colors.green} height={5} />
+            <Bar value={invest} total={mat} color={C.green} height={5} />
 
             <Text style={styles.subSectionLabel}>Link to goal</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
               {s.goals.map((g) => (
-                <Pressable key={g.title} onPress={() => dispatch({ type: 'UPDATE_SIP', idx: i, patch: { goalLink: si.goalLink === g.title ? null : g.title } })} style={[styles.goalLinkBtn, { backgroundColor: si.goalLink === g.title ? g.color + '28' : 'rgba(255,255,255,0.05)', borderColor: si.goalLink === g.title ? g.color : Colors.border }]}>
-                  <Text style={[styles.goalLinkText, { color: si.goalLink === g.title ? g.color : Colors.t3 }]}>{g.title}</Text>
+                <Pressable key={g.title} onPress={() => dispatch({ type: 'UPDATE_SIP', idx: i, patch: { goalLink: si.goalLink === g.title ? null : g.title } })} style={[styles.goalLinkBtn, { backgroundColor: si.goalLink === g.title ? g.color + '28' : 'rgba(255,255,255,0.05)', borderColor: si.goalLink === g.title ? g.color : C.border }]}>
+                  <Text style={[styles.goalLinkText, { color: si.goalLink === g.title ? g.color : C.t3 }]}>{g.title}</Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -340,7 +340,7 @@ function DebtTab({ s, dispatch }) {
   if (s.debts.length === 0) {
     return (
       <View style={styles.tabContent}>
-        <EmptyState icon="🏦" title="No debts tracked" sub="Add your loans or credit cards to plan smart repayment." cta="+ Add Debt" onCta={() => dispatch({ type: 'ADD_DEBT', debt: { name: 'Personal Loan', amount: 50000, remaining: 50000, emi: 3000, rate: 10, dueDate: 5 } })} />
+        <Empty icon="🏦" title="No debts tracked" sub="Add your loans or credit cards to plan smart repayment." cta="+ Add Debt" onCta={() => dispatch({ type: 'ADD_DEBT', debt: { name: 'Personal Loan', amount: 50000, remaining: 50000, emi: 3000, rate: 10, dueDate: 5 } })} />
       </View>
     );
   }
@@ -355,14 +355,14 @@ function DebtTab({ s, dispatch }) {
         <View style={styles.debtSummRow}>
           <View>
             <Text style={styles.debtSummLabel}>Total Outstanding</Text>
-            <Text style={styles.debtSummVal}>{inr(totalRem)}</Text>
+            <Text style={styles.debtSummVal}>{fmt(totalRem)}</Text>
           </View>
-          <Chip label="Active" color={Colors.red} dot />
+          <Chip label="Active" color={C.red} dot />
         </View>
         <View style={styles.row2}>
           {[
-            { label: '🔥 Avalanche', sub: 'Max interest', name: highRate.name, color: Colors.amber },
-            { label: '❄️ Snowball',  sub: 'Motivation',   name: smallest.name, color: Colors.blue  },
+            { label: '🔥 Avalanche', sub: 'Max interest', name: highRate.name, color: C.amber },
+            { label: '❄️ Snowball',  sub: 'Motivation',   name: smallest.name, color: C.blue  },
           ].map((m) => (
             <View key={m.label} style={[styles.stratCard, { borderColor: m.color + '25' }]}>
               <Text style={[styles.stratLabel, { color: m.color }]}>{m.label}</Text>
@@ -371,9 +371,9 @@ function DebtTab({ s, dispatch }) {
             </View>
           ))}
         </View>
-        <View style={[styles.alertRow2, { backgroundColor: Colors.amberD, borderColor: Colors.amber + '30' }]}>
+        <View style={[styles.alertRow2, { backgroundColor: C.amberD, borderColor: C.amber + '30' }]}>
           <Text style={{ fontSize: 16 }}>💡</Text>
-          <Text style={[styles.alertMsg2, { color: Colors.amber }]}>Avalanche saves the most money. Snowball keeps you motivated.</Text>
+          <Text style={[styles.alertMsg2, { color: C.amber }]}>Avalanche saves the most money. Snowball keeps you motivated.</Text>
         </View>
       </Card>
 
@@ -388,28 +388,28 @@ function DebtTab({ s, dispatch }) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.debtName}>{d.name}</Text>
                 <View style={styles.chipRow}>
-                  <Chip label={`${d.rate}% p.a.`} color={Colors.red} />
-                  {d.dueDate && <Chip label={`Due: ${d.dueDate}th`} color={Colors.amber} />}
+                  <Chip label={`${d.rate}% p.a.`} color={C.red} />
+                  {d.dueDate && <Chip label={`Due: ${d.dueDate}th`} color={C.amber} />}
                 </View>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.debtRem}>{inr(d.remaining)}</Text>
+                <Text style={styles.debtRem}>{fmt(d.remaining)}</Text>
                 <Text style={styles.debtRemLabel}>remaining</Text>
               </View>
             </View>
-            <ProgressBar value={paid} total={d.amount} color={Colors.red} height={5} />
+            <Bar value={paid} total={d.amount} color={C.red} height={5} />
             <View style={styles.debtMeta}>
               <Text style={styles.debtMetaText}>{pct(paid, d.amount)}% cleared</Text>
               <Text style={styles.debtMetaText}>{months} months left</Text>
             </View>
             <View style={styles.sipStats}>
-              <StatRow label="Monthly EMI"        value={inr(d.emi)} />
-              <StatRow label="Amount Paid"        value={inr(paid)}       valueColor={Colors.green} />
-              <StatRow label="Interest Remaining" value={inr(intLeft)}    valueColor={Colors.red} last />
+              <StatRow label="Monthly EMI"        value={fmt(d.emi)} />
+              <StatRow label="Amount Paid"        value={fmt(paid)}       valueColor={C.green} />
+              <StatRow label="Interest Remaining" value={fmt(intLeft)}    valueColor={C.red} last />
             </View>
-            <View style={[styles.alertRow2, { backgroundColor: Colors.greenD, borderColor: Colors.green + '28', marginTop: 8 }]}>
+            <View style={[styles.alertRow2, { backgroundColor: C.greenD, borderColor: C.green + '28', marginTop: 8 }]}>
               <Text style={{ fontSize: 14 }}>🚀</Text>
-              <Text style={[styles.alertMsg2, { color: Colors.green }]}>
+              <Text style={[styles.alertMsg2, { color: C.green }]}>
                 Pay ₹2K extra/mo → clear in <Text style={{ fontWeight: '700' }}>{extraM} months</Text> instead of {months}
               </Text>
             </View>
@@ -426,85 +426,85 @@ const Colors_green_D = 'rgba(34,197,94,0.09)';
 const Colors_red_D   = 'rgba(244,63,94,0.12)';
 
 const styles = StyleSheet.create({
-  header:             { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 56, paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
-  pageTitle:          { fontFamily: 'Syne_800ExtraBold', fontSize: 27, color: Colors.t1, letterSpacing: -0.5 },
-  pageSub:            { fontSize: 13, color: Colors.t3, marginTop: 2 },
-  autoRow:            { marginHorizontal: Spacing.md, marginBottom: Spacing.sm + 4, backgroundColor: Colors.layer2, borderRadius: Radius.md, padding: Spacing.sm + 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
-  autoTitle:          { fontWeight: '600', fontSize: 14, color: Colors.t1 },
-  autoSub:            { fontSize: 12, color: Colors.t3 },
-  suggestBox:         { marginHorizontal: Spacing.md, marginBottom: Spacing.sm + 4, backgroundColor: Colors.green + '10', borderRadius: Radius.md, padding: Spacing.sm + 6, borderWidth: 1, borderColor: Colors.green + '25' },
+  header:             { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 56, paddingHorizontal: S.md, paddingBottom: S.md },
+  pageTitle:          { fontFamily: 'Syne_800ExtraBold', fontSize: 27, color: C.t1, letterSpacing: -0.5 },
+  pageSub:            { fontSize: 13, color: C.t3, marginTop: 2 },
+  autoRow:            { marginHorizontal: S.md, marginBottom: S.sm + 4, backgroundColor: C.layer2, borderRadius: R.md, padding: S.sm + 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: C.border },
+  autoTitle:          { fontWeight: '600', fontSize: 14, color: C.t1 },
+  autoSub:            { fontSize: 12, color: C.t3 },
+  suggestBox:         { marginHorizontal: S.md, marginBottom: S.sm + 4, backgroundColor: C.green + '10', borderRadius: R.md, padding: S.sm + 6, borderWidth: 1, borderColor: C.green + '25' },
   suggestTitle:       { fontWeight: '600', fontSize: 13, marginBottom: 6 },
-  suggestItem:        { fontSize: 12, color: Colors.t2, lineHeight: 20 },
-  tabWrap:            { flexDirection: 'row', marginHorizontal: Spacing.md, marginBottom: Spacing.md, backgroundColor: Colors.layer1, borderRadius: Radius.md + 2, padding: 5, gap: 4, borderWidth: 1, borderColor: Colors.border },
+  suggestItem:        { fontSize: 12, color: C.t2, lineHeight: 20 },
+  tabWrap:            { flexDirection: 'row', marginHorizontal: S.md, marginBottom: S.md, backgroundColor: C.layer1, borderRadius: R.md + 2, padding: 5, gap: 4, borderWidth: 1, borderColor: C.border },
   tabBtn:             { flex: 1, paddingVertical: 9, borderRadius: 11, alignItems: 'center' },
-  tabBtnActive:       { backgroundColor: Colors.blue },
-  tabText:            { fontSize: 12, fontWeight: '600', color: Colors.t3 },
+  tabBtnActive:       { backgroundColor: C.blue },
+  tabText:            { fontSize: 12, fontWeight: '600', color: C.t3 },
   tabTextActive:      { color: '#fff' },
-  tabContent:         { paddingHorizontal: Spacing.md },
-  section:            { marginBottom: Spacing.sm + 2 },
-  subSectionLabel:    { fontSize: 12, fontWeight: '600', color: Colors.t3, marginBottom: 8, marginTop: 4 },
-  subSectionLabelOuter:{ fontFamily: 'Syne_700Bold', fontSize: 14, color: Colors.t1, marginBottom: 10, marginTop: 4 },
-  addLink:            { color: Colors.blue, fontSize: 13, fontWeight: '600', marginTop: 4 },
-  incomeRow:          { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Colors.layer2, borderRadius: 12, padding: Spacing.sm + 2, marginBottom: 7, borderWidth: 1, borderColor: Colors.border },
-  incomeLabel:        { fontSize: 13, fontWeight: '600', color: Colors.t1 },
+  tabContent:         { paddingHorizontal: S.md },
+  section:            { marginBottom: S.sm + 2 },
+  subSectionLabel:    { fontSize: 12, fontWeight: '600', color: C.t3, marginBottom: 8, marginTop: 4 },
+  subSectionLabelOuter:{ fontFamily: 'Syne_700Bold', fontSize: 14, color: C.t1, marginBottom: 10, marginTop: 4 },
+  addLink:            { color: C.blue, fontSize: 13, fontWeight: '600', marginTop: 4 },
+  incomeRow:          { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.layer2, borderRadius: 12, padding: S.sm + 2, marginBottom: 7, borderWidth: 1, borderColor: C.border },
+  incomeLabel:        { fontSize: 13, fontWeight: '600', color: C.t1 },
   incomeAmt:          { fontSize: 14, fontWeight: '700' },
-  removeBtn:          { fontSize: 20, color: Colors.red, paddingHorizontal: 4 },
-  statRow3:           { flexDirection: 'row', gap: 8, marginBottom: Spacing.sm + 2 },
-  statCard:           { flex: 1, padding: Spacing.sm + 6, alignItems: 'center', gap: 3 },
+  removeBtn:          { fontSize: 20, color: C.red, paddingHorizontal: 4 },
+  statRow3:           { flexDirection: 'row', gap: 8, marginBottom: S.sm + 2 },
+  statCard:           { flex: 1, padding: S.sm + 6, alignItems: 'center', gap: 3 },
   statCardVal:        { fontFamily: 'Syne_800ExtraBold', fontSize: 13 },
-  statCardLabel:      { fontSize: 10, color: Colors.t3 },
-  calHeader:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  statCardLabel:      { fontSize: 10, color: C.t3 },
+  calHeader:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: S.md },
   dayRow:             { flexDirection: 'row', marginBottom: 6 },
-  dayLabel:           { flex: 1, textAlign: 'center', fontSize: 10, color: Colors.t3, paddingBottom: 4 },
+  dayLabel:           { flex: 1, textAlign: 'center', fontSize: 10, color: C.t3, paddingBottom: 4 },
   calGrid:            { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   dayCell:            { width: '12.5%', aspectRatio: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'transparent' },
-  dayNum:             { fontSize: 11, color: Colors.t2 },
+  dayNum:             { fontSize: 11, color: C.t2 },
   donutRow:           { flexDirection: 'row', alignItems: 'center', gap: 16 },
   donutLegRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   donutLegLeft:       { flexDirection: 'row', alignItems: 'center', gap: 7 },
   dot9:               { width: 9, height: 9, borderRadius: 3 },
-  donutLegLabel:      { fontSize: 13, color: Colors.t2 },
+  donutLegLabel:      { fontSize: 13, color: C.t2 },
   donutLegVal:        { fontWeight: '700', fontSize: 13 },
-  donutLegPct:        { fontSize: 10, color: Colors.t3 },
+  donutLegPct:        { fontSize: 10, color: C.t3 },
   sliderHeader:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sliderTitle:        { fontFamily: 'Syne_700Bold', fontSize: 15, color: Colors.t1 },
-  sliderSub:          { fontSize: 12, color: Colors.t3, marginTop: 2 },
+  sliderTitle:        { fontFamily: 'Syne_700Bold', fontSize: 15, color: C.t1 },
+  sliderSub:          { fontSize: 12, color: C.t3, marginTop: 2 },
   sliderPctBadge:     { borderRadius: 11, paddingHorizontal: 14, paddingVertical: 7 },
   sliderPct:          { fontFamily: 'Syne_800ExtraBold', fontSize: 22 },
   sliderRow:          { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sliderBtn:          { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.layer2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border },
-  sliderBtnText:      { fontSize: 20, color: Colors.t1, lineHeight: 26 },
-  manExpRow:          { flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: Colors.layer2, borderRadius: 13, padding: Spacing.sm + 3, marginBottom: 9, borderWidth: 1, borderColor: Colors.border },
-  manExpCat:          { fontWeight: '600', fontSize: 13, color: Colors.t1 },
+  sliderBtn:          { width: 36, height: 36, borderRadius: 10, backgroundColor: C.layer2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+  sliderBtnText:      { fontSize: 20, color: C.t1, lineHeight: 26 },
+  manExpRow:          { flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: C.layer2, borderRadius: 13, padding: S.sm + 3, marginBottom: 9, borderWidth: 1, borderColor: C.border },
+  manExpCat:          { fontWeight: '600', fontSize: 13, color: C.t1 },
   manExpAmt:          { fontFamily: 'Syne_700Bold', fontSize: 14 },
-  row2:               { flexDirection: 'row', gap: 10, marginBottom: Spacing.sm + 2 },
-  sipSummCard:        { flex: 1, padding: Spacing.md, borderRadius: Radius.xl, gap: 6 },
+  row2:               { flexDirection: 'row', gap: 10, marginBottom: S.sm + 2 },
+  sipSummCard:        { flex: 1, padding: S.md, borderRadius: R.xl, gap: 6 },
   sipSummLabel:       { fontSize: 11, color: 'rgba(255,255,255,0.45)' },
   sipSummVal:         { fontFamily: 'Syne_800ExtraBold', fontSize: 22, color: '#fff' },
   sipHeader:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  sipName:            { fontFamily: 'Syne_700Bold', fontSize: 15, color: Colors.t1 },
-  sipAmt:             { fontFamily: 'Syne_800ExtraBold', fontSize: 22, color: Colors.green },
+  sipName:            { fontFamily: 'Syne_700Bold', fontSize: 15, color: C.t1 },
+  sipAmt:             { fontFamily: 'Syne_800ExtraBold', fontSize: 22, color: C.green },
   chipRow:            { flexDirection: 'row', gap: 5, marginTop: 5, flexWrap: 'wrap' },
   sipStats:           { marginVertical: 10 },
   goalLinkBtn:        { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 1, marginTop: 8 },
   goalLinkText:       { fontSize: 11, fontWeight: '600' },
-  removeLink:         { color: Colors.red, fontSize: 12, fontWeight: '600', marginTop: 10 },
+  removeLink:         { color: C.red, fontSize: 12, fontWeight: '600', marginTop: 10 },
   debtSummRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  debtSummLabel:      { fontSize: 12, color: Colors.t3, marginBottom: 3 },
-  debtSummVal:        { fontFamily: 'Syne_800ExtraBold', fontSize: 28, color: Colors.red },
-  stratCard:          { flex: 1, backgroundColor: Colors.layer2, borderRadius: 11, padding: Spacing.sm + 4, borderWidth: 1 },
+  debtSummLabel:      { fontSize: 12, color: C.t3, marginBottom: 3 },
+  debtSummVal:        { fontFamily: 'Syne_800ExtraBold', fontSize: 28, color: C.red },
+  stratCard:          { flex: 1, backgroundColor: C.layer2, borderRadius: 11, padding: S.sm + 4, borderWidth: 1 },
   stratLabel:         { fontSize: 11, fontWeight: '700', marginBottom: 3 },
-  stratName:          { fontWeight: '600', fontSize: 13, color: Colors.t1 },
-  stratSub:           { fontSize: 10, color: Colors.t3, marginTop: 2 },
-  alertRow2:          { flexDirection: 'row', gap: 9, padding: Spacing.sm + 2, borderRadius: 11, borderWidth: 1, alignItems: 'flex-start' },
+  stratName:          { fontWeight: '600', fontSize: 13, color: C.t1 },
+  stratSub:           { fontSize: 10, color: C.t3, marginTop: 2 },
+  alertRow2:          { flexDirection: 'row', gap: 9, padding: S.sm + 2, borderRadius: 11, borderWidth: 1, alignItems: 'flex-start' },
   alertMsg2:          { fontSize: 12, lineHeight: 18, flex: 1 },
   debtHeader:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  debtName:           { fontFamily: 'Syne_700Bold', fontSize: 15, color: Colors.t1 },
-  debtRem:            { fontFamily: 'Syne_800ExtraBold', fontSize: 22, color: Colors.red },
-  debtRemLabel:       { fontSize: 11, color: Colors.t3, marginTop: 1 },
+  debtName:           { fontFamily: 'Syne_700Bold', fontSize: 15, color: C.t1 },
+  debtRem:            { fontFamily: 'Syne_800ExtraBold', fontSize: 22, color: C.red },
+  debtRemLabel:       { fontSize: 11, color: C.t3, marginTop: 1 },
   debtMeta:           { flexDirection: 'row', justifyContent: 'space-between', marginTop: 7, marginBottom: 12 },
-  debtMetaText:       { fontSize: 11, color: Colors.t3 },
-  amberD:             Colors.amberDim,
-  greenD:             Colors.greenDim,
-  redD:               Colors.redDim,
+  debtMetaText:       { fontSize: 11, color: C.t3 },
+  amberD:             C.amberDim,
+  greenD:             C.greenDim,
+  redD:               C.redDim,
 });

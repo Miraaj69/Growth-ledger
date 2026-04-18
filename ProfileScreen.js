@@ -3,9 +3,9 @@ import React, { useMemo } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet, Alert, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from './AppContext';
-import { Colors, Spacing, Radius } from './theme';
-import { inr, pct, calcScore } from './calculations';
-import { Card, GradientCard, Chip, ProgressBar, SectionHeader, Toggle } from './UIComponents';
+import { C, S, R } from './theme';
+import { fmt, pct, calcScore } from './calculations';
+import { Card, GCard, Chip, Bar, SH, Toggle } from './UIComponents';
 import ScoreRing from './ScoreRing';
 import { clearState } from './storage';
 
@@ -13,7 +13,7 @@ export default function ProfileScreen() {
   const { state: s, set, dispatch } = useApp();
 
   const score        = useMemo(() => calcScore(s), [s]);
-  const scoreColor   = score.total >= 80 ? Colors.green : score.total >= 65 ? Colors.teal : score.total >= 50 ? Colors.blue : score.total >= 35 ? Colors.amber : Colors.red;
+  const scoreColor   = score.total >= 80 ? C.green : score.total >= 65 ? C.teal : score.total >= 50 ? C.blue : score.total >= 35 ? C.amber : C.red;
   const done         = s.certifications.filter((c) => c.status === 'Done').length;
   const totalInc     = s.incomes.reduce((a, x) => a + x.amount, 0);
   const achievements = useMemo(() => {
@@ -23,15 +23,15 @@ export default function ProfileScreen() {
     const certsDone  = s.certifications.filter((c) => c.status === 'Done').length;
     const present    = s.attendance ? s.attendance.size : 0;
     return [
-      { icon: '🥇', label: 'Saver',      desc: 'Saved ₹1L+',    unlocked: totalSaved >= 100000,            color: Colors.amber  },
-      { icon: '📈', label: 'Investor',   desc: 'Started SIP',   unlocked: sipTotal > 0,                     color: Colors.green  },
-      { icon: '💪', label: 'Debt Buster',desc: 'Paid ₹50K',     unlocked: debtPaid >= 50000,                color: Colors.blue   },
-      { icon: '🎓', label: 'Certified',  desc: '2+ certs',      unlocked: certsDone >= 2,                   color: Colors.purple },
-      { icon: '🔥', label: 'Consistent', desc: '20+ days',      unlocked: present >= 20,                    color: Colors.red    },
-      { icon: '👑', label: 'Elite',      desc: 'Score 85+',     unlocked: score.total >= 85,                color: Colors.amber  },
-      { icon: '🎯', label: 'Planner',    desc: '3 goals',       unlocked: s.goals.length >= 3,              color: Colors.teal   },
-      { icon: '💎', label: 'Debt-Free',  desc: 'Zero debt',     unlocked: s.debts.every((d) => d.remaining === 0), color: Colors.pink },
-      { icon: '🚀', label: 'High Earner',desc: '>₹1L income',  unlocked: totalInc >= 100000,                color: Colors.blue   },
+      { icon: '🥇', label: 'Saver',      desc: 'Saved ₹1L+',    unlocked: totalSaved >= 100000,            color: C.amber  },
+      { icon: '📈', label: 'Investor',   desc: 'Started SIP',   unlocked: sipTotal > 0,                     color: C.green  },
+      { icon: '💪', label: 'Debt Buster',desc: 'Paid ₹50K',     unlocked: debtPaid >= 50000,                color: C.blue   },
+      { icon: '🎓', label: 'Certified',  desc: '2+ certs',      unlocked: certsDone >= 2,                   color: C.purple },
+      { icon: '🔥', label: 'Consistent', desc: '20+ days',      unlocked: present >= 20,                    color: C.red    },
+      { icon: '👑', label: 'Elite',      desc: 'Score 85+',     unlocked: score.total >= 85,                color: C.amber  },
+      { icon: '🎯', label: 'Planner',    desc: '3 goals',       unlocked: s.goals.length >= 3,              color: C.teal   },
+      { icon: '💎', label: 'Debt-Free',  desc: 'Zero debt',     unlocked: s.debts.every((d) => d.remaining === 0), color: C.pink },
+      { icon: '🚀', label: 'High Earner',desc: '>₹1L income',  unlocked: totalInc >= 100000,                color: C.blue   },
     ];
   }, [s, score, totalInc]);
 
@@ -66,11 +66,11 @@ export default function ProfileScreen() {
         <Text style={styles.heroSub}>Safety Officer · Age {s.userAge || 28}</Text>
         <View style={styles.heroChips}>
           <Chip label={`Score: ${score.total}/100`} color={scoreColor} dot size="md" />
-          <Chip label={`Lv ${s.level || 1} · ${s.xpTotal || 0} XP`} color={Colors.amber} size="md" />
+          <Chip label={`Lv ${s.level || 1} · ${s.xpTotal || 0} XP`} color={C.amber} size="md" />
         </View>
         <View style={styles.heroChips}>
-          <Chip label="NEBOSH" color={Colors.green} />
-          <Chip label="IOSH MS" color={Colors.blue} />
+          <Chip label="NEBOSH" color={C.green} />
+          <Chip label="IOSH MS" color={C.blue} />
         </View>
         {s.lastSaved && <Text style={styles.savedText}>✓ Auto-saved · {s.lastSaved}</Text>}
       </LinearGradient>
@@ -92,14 +92,14 @@ export default function ProfileScreen() {
 
       {/* ACHIEVEMENTS */}
       <Card style={styles.section}>
-        <SectionHeader title="Achievements" right={`${achievements.filter((a) => a.unlocked).length}/${achievements.length}`} rightColor={Colors.amber} />
+        <SH title="Achievements" right={`${achievements.filter((a) => a.unlocked).length}/${achievements.length}`} rightColor={C.amber} />
         <View style={styles.achieveGrid}>
           {achievements.map((a, i) => (
             <View key={i} style={styles.achieveItem}>
-              <View style={[styles.achieveIcon, { backgroundColor: a.unlocked ? a.color + '20' : Colors.layer2, borderColor: a.unlocked ? a.color + '40' : Colors.border, opacity: a.unlocked ? 1 : 0.3 }]}>
+              <View style={[styles.achieveIcon, { backgroundColor: a.unlocked ? a.color + '20' : C.layer2, borderColor: a.unlocked ? a.color + '40' : C.border, opacity: a.unlocked ? 1 : 0.3 }]}>
                 <Text style={{ fontSize: 20 }}>{a.icon}</Text>
               </View>
-              <Text style={[styles.achieveLabel, { color: a.unlocked ? Colors.t2 : Colors.t3 }]}>{a.label}</Text>
+              <Text style={[styles.achieveLabel, { color: a.unlocked ? C.t2 : C.t3 }]}>{a.label}</Text>
               <Text style={styles.achieveDesc}>{a.desc}</Text>
             </View>
           ))}
@@ -108,7 +108,7 @@ export default function ProfileScreen() {
 
       {/* PRIVACY */}
       <Card style={styles.section}>
-        <SectionHeader title="Privacy & Security" />
+        <SH title="Privacy & Security" />
         {[
           { key: 'maskAmounts',    icon: '👁️', label: 'Mask Amounts',    sub: 'Hide numbers in public' },
           { key: 'biometricLock', icon: '🔐', label: 'Biometric Lock',  sub: 'Face ID / Fingerprint'  },
@@ -128,7 +128,7 @@ export default function ProfileScreen() {
 
       {/* REMINDERS */}
       <Card style={styles.section}>
-        <SectionHeader title="Reminders" />
+        <SH title="Reminders" />
         {[
           { key: 'salary', icon: '💰', label: 'Salary Day Reminder'  },
           { key: 'sip',    icon: '📈', label: 'SIP Investment Alert'  },
@@ -147,7 +147,7 @@ export default function ProfileScreen() {
 
       {/* ACTIONS */}
       <Card style={styles.section}>
-        <SectionHeader title="Data & Actions" />
+        <SH title="Data & Actions" />
         {[
           { icon: '💾', label: 'Export JSON Backup',   right: '↓ Save',  action: handleExport },
           { icon: '🎯', label: 'Set Financial Goals',  right: '→'                             },
@@ -159,7 +159,7 @@ export default function ProfileScreen() {
               <Text style={{ fontSize: 19 }}>{it.icon}</Text>
               <Text style={styles.settingLabel}>{it.label}</Text>
             </View>
-            <Text style={[styles.actionRight, it.action && { color: Colors.blue }]}>{it.right}</Text>
+            <Text style={[styles.actionRight, it.action && { color: C.blue }]}>{it.right}</Text>
           </Pressable>
         ))}
       </Card>
@@ -168,30 +168,30 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: Colors.bg },
-  header:       { paddingTop: 56, paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
-  pageTitle:    { fontFamily: 'Syne_800ExtraBold', fontSize: 27, color: Colors.t1, letterSpacing: -0.5 },
-  heroCard:     { marginHorizontal: Spacing.md, marginBottom: 12, borderRadius: Radius.xl, padding: Spacing.lg, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
+  container:    { flex: 1, backgroundColor: C.bg },
+  header:       { paddingTop: 56, paddingHorizontal: S.md, paddingBottom: S.md },
+  pageTitle:    { fontFamily: 'Syne_800ExtraBold', fontSize: 27, color: C.t1, letterSpacing: -0.5 },
+  heroCard:     { marginHorizontal: S.md, marginBottom: 12, borderRadius: R.xl, padding: S.lg, alignItems: 'center', borderWidth: 1, borderColor: C.border },
   avatar:       { width: 76, height: 76, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.14)' },
-  heroName:     { fontFamily: 'Syne_800ExtraBold', fontSize: 21, color: Colors.t1, marginBottom: 3 },
+  heroName:     { fontFamily: 'Syne_800ExtraBold', fontSize: 21, color: C.t1, marginBottom: 3 },
   heroSub:      { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 12 },
   heroChips:    { flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 7 },
   savedText:    { fontSize: 11, color: 'rgba(255,255,255,0.28)', marginTop: 8 },
-  statGrid:     { flexDirection: 'row', gap: 8, marginHorizontal: Spacing.md, marginBottom: 12 },
-  statCard:     { flex: 1, padding: Spacing.sm + 6, alignItems: 'center' },
-  statVal:      { fontFamily: 'Syne_800ExtraBold', fontSize: 17, color: Colors.t1 },
-  statLabel:    { fontSize: 10, color: Colors.t3, marginTop: 2 },
-  section:      { marginHorizontal: Spacing.md, marginBottom: 12 },
+  statGrid:     { flexDirection: 'row', gap: 8, marginHorizontal: S.md, marginBottom: 12 },
+  statCard:     { flex: 1, padding: S.sm + 6, alignItems: 'center' },
+  statVal:      { fontFamily: 'Syne_800ExtraBold', fontSize: 17, color: C.t1 },
+  statLabel:    { fontSize: 10, color: C.t3, marginTop: 2 },
+  section:      { marginHorizontal: S.md, marginBottom: 12 },
   achieveGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   achieveItem:  { width: '28%', alignItems: 'center' },
   achieveIcon:  { width: 50, height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginBottom: 5 },
   achieveLabel: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
-  achieveDesc:  { fontSize: 9, color: Colors.t3, textAlign: 'center', marginTop: 1 },
+  achieveDesc:  { fontSize: 9, color: C.t3, textAlign: 'center', marginTop: 1 },
   settingRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13 },
-  settingBorder:{ borderBottomWidth: 1, borderBottomColor: Colors.border },
+  settingBorder:{ borderBottomWidth: 1, borderBottomColor: C.border },
   settingLeft:  { flexDirection: 'row', gap: 11, alignItems: 'center', flex: 1 },
-  settingLabel: { fontSize: 14, color: Colors.t1 },
-  settingSub:   { fontSize: 12, color: Colors.t3 },
+  settingLabel: { fontSize: 14, color: C.t1 },
+  settingSub:   { fontSize: 12, color: C.t3 },
   actionRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
-  actionRight:  { fontSize: 13, color: Colors.t3 },
+  actionRight:  { fontSize: 13, color: C.t3 },
 });
