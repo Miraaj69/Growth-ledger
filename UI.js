@@ -8,7 +8,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from './ThemeContext';
-import { SPACING as S, RADIUS as R, SHADOW as SH } from './theme';
+import { SPACING as S, RADIUS as R, SHADOW as SectionHeader } from './theme';
 import { safePct } from './helpers';
 
 // ── Haptic helper ─────────────────────────────────────────
@@ -33,7 +33,7 @@ export const Card = memo(({ children, style, onPress, glow }) => {
       backgroundColor: T.l1,
       borderRadius: R.xl, padding: S.md,
       borderWidth:1, borderColor: glow ? T.blue+'44' : T.border,
-      ...SH.card,
+      ...SectionHeader.card,
     }, style, { transform:[{ scale }] }]}>
       {children}
     </Animated.View>
@@ -52,7 +52,7 @@ export const GCard = memo(({ children, colors, style, onPress }) => {
       <Animated.View style={{ transform:[{ scale }] }}>
         <LinearGradient
           colors={colors || ['#0b1f52','#1e4fa0']}
-          style={[{ borderRadius:R.xl, padding:S.md, borderWidth:1, borderColor:T.border, ...SH.card }, style]}
+          style={[{ borderRadius:R.xl, padding:S.md, borderWidth:1, borderColor:T.border, ...SectionHeader.card }, style]}
           start={{x:0,y:0}} end={{x:1,y:1}}
         >
           {children}
@@ -122,7 +122,7 @@ export const Btn = memo(({ label, onPress, disabled, loading, color, style }) =>
       onPressIn={onIn} onPressOut={onOut} disabled={disabled||loading}>
       <Animated.View style={{ transform:[{ scale }] }}>
         <LinearGradient colors={colors}
-          style={[{ borderRadius:R.lg, paddingVertical:S.md, paddingHorizontal:S.lg, alignItems:'center', justifyContent:'center', ...SH.blue }, style]}
+          style={[{ borderRadius:R.lg, paddingVertical:S.md, paddingHorizontal:S.lg, alignItems:'center', justifyContent:'center', ...SectionHeader.blue }, style]}
           start={{x:0,y:0}} end={{x:1,y:0}}>
           {loading
             ? <ActivityIndicator color="#fff" size="small" />
@@ -264,7 +264,7 @@ export const FAB = memo(({ actions }) => {
         <Animated.View style={{ marginBottom:S.sm, gap:S.sm, alignItems:'flex-end', opacity:opac, transform:[{translateY:tY}] }}>
           {[...actions].reverse().map((a,i) => (
             <Pressable key={i} onPress={() => { a.action?.(); setOpen(false); }}
-              style={{ flexDirection:'row', alignItems:'center', gap:S.sm, paddingHorizontal:S.md, paddingVertical:10, borderRadius:99, backgroundColor: a.color||'#4F8CFF', ...SH.card }}>
+              style={{ flexDirection:'row', alignItems:'center', gap:S.sm, paddingHorizontal:S.md, paddingVertical:10, borderRadius:99, backgroundColor: a.color||'#4F8CFF', ...SectionHeader.card }}>
               <Text style={{ fontSize:18 }}>{a.icon}</Text>
               <Text style={{ color:'#fff', fontWeight:'600', fontSize:13 }}>{a.label}</Text>
             </Pressable>
@@ -272,7 +272,7 @@ export const FAB = memo(({ actions }) => {
         </Animated.View>
       )}
       <Pressable onPress={toggle}>
-        <LinearGradient colors={['#2563EB','#4F8CFF']} style={{ width:54,height:54,borderRadius:R.lg+2,alignItems:'center',justifyContent:'center',...SH.blue }} start={{x:0,y:0}} end={{x:1,y:1}}>
+        <LinearGradient colors={['#2563EB','#4F8CFF']} style={{ width:54,height:54,borderRadius:R.lg+2,alignItems:'center',justifyContent:'center',...SectionHeader.blue }} start={{x:0,y:0}} end={{x:1,y:1}}>
           <Animated.Text style={{ fontSize:30, color:'#fff', lineHeight:36, transform:[{rotate:rotation}] }}>+</Animated.Text>
         </LinearGradient>
       </Pressable>

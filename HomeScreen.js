@@ -7,7 +7,7 @@ import { useApp } from './AppContext';
 import { useTheme } from './ThemeContext';
 import { fmt, deriveState, calcScore, calcPersonality, nextAction, buildInsights, MONTHS_SHORT, safePct } from './helpers';
 import { SPACING as SP, RADIUS as R, GRAD } from './theme';
-import { Card, GCard, Chip, Bar, SH, MonthPicker, Empty, AlertRow } from './UI';
+import { Card, GCard, Chip, Bar, SectionHeader, MonthPicker, Empty, AlertRow } from './UI';
 import { ScoreRing, DonutChart, BarChart } from './Charts';
 
 // ── Memoized sub-components for performance ──────────────
@@ -191,7 +191,7 @@ export default function HomeScreen({ navigation }) {
       {insights.length > 0 && (
         <Animated.View entering={FadeInDown.duration(350).delay(160)} style={{ marginHorizontal:SP.md }}>
           <Card style={{ marginBottom:12 }}>
-            <SH title="🧠 Smart Insights"
+            <SectionHeader title="🧠 Smart Insights"
               right={`${showAllInsights?'Less':'All'} (${insights.length})`}
               onRight={() => setShowAllInsights(v => !v)} />
             {(showAllInsights ? insights : insights.slice(0,2)).map((ins, i) => (
@@ -235,7 +235,7 @@ export default function HomeScreen({ navigation }) {
       {/* ACHIEVEMENTS */}
       <Animated.View entering={FadeInDown.duration(350).delay(250)} style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Achievements" right={`${achievements.filter(a=>a.unlocked).length}/${achievements.length}`} rightColor="#F59E0B" />
+          <SectionHeader title="Achievements" right={`${achievements.filter(a=>a.unlocked).length}/${achievements.length}`} rightColor="#F59E0B" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap:12 }}>
             {achievements.map((a, i) => (
               <View key={i} style={{ width:64, alignItems:'center' }}>
@@ -254,7 +254,7 @@ export default function HomeScreen({ navigation }) {
       {d.salary > 0 && (
         <Animated.View entering={FadeInDown.duration(350).delay(280)} style={{ marginHorizontal:SP.md }}>
           <Card style={{ marginBottom:12 }}>
-            <SH title="Expense Split" />
+            <SectionHeader title="Expense Split" />
             <View style={{ flexDirection:'row', alignItems:'center', gap:16 }}>
               <DonutChart segments={(s.expenses||[]).map(e=>({pct:e.pct,color:e.color}))} size={92} sw={12} centerLabel={fmt(d.salary)} />
               <View style={{ flex:1 }}>
@@ -280,7 +280,7 @@ export default function HomeScreen({ navigation }) {
       {(s.goals||[]).length > 0 && (
         <Animated.View entering={FadeInDown.duration(350).delay(300)} style={{ marginHorizontal:SP.md }}>
           <Card style={{ marginBottom:12 }}>
-            <SH title="Financial Goals" right="Money →" />
+            <SectionHeader title="Financial Goals" right="Money →" />
             {goals.map(({ g, mLeft, rSave }, i) => (
               <GoalItem key={g.id||i} g={g} monthsLeft={mLeft} reqSave={rSave} />
             ))}
@@ -301,7 +301,7 @@ export default function HomeScreen({ navigation }) {
       <Animated.View entering={FadeInDown.duration(350).delay(320)} style={{ marginHorizontal:SP.md }}>
         <Card>
           <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
-            <SH title="Earnings Trend" />
+            <SectionHeader title="Earnings Trend" />
             <View style={{ alignItems:'flex-end' }}>
               <Text style={{ fontWeight:'800', fontSize:17, color:'#22C55E' }}>
                 {fmt((s.monthlyData||[]).slice(0,s.currentMonth+1).reduce((a,v)=>a+v,0))}

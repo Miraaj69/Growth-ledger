@@ -10,7 +10,7 @@ import {
   buildInsights, MONTHS_SHORT,
 } from './helpers';
 import { SPACING as SP } from './theme';
-import { Card, GCard, Chip, Bar, SH, Empty, AlertRow, StatRow } from './UI';
+import { Card, GCard, Chip, Bar, SectionHeader, Empty, AlertRow, StatRow } from './UI';
 import { ScoreRing, BarChart } from './Charts';
 
 // ── Category breakdown item ───────────────────────────────
@@ -147,7 +147,7 @@ export default function InsightsScreen() {
       {/* SCORE */}
       <Animated.View entering={FadeInDown.duration(350).delay(80)} style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Financial Health Score" />
+          <SectionHeader title="Financial Health Score" />
           {d.totalIncome === 0 ? (
             <Empty icon="📊" title="No data yet" sub="Enter your salary in the Money tab to see your financial health score." />
           ) : (
@@ -173,7 +173,7 @@ export default function InsightsScreen() {
       {/* SMART INSIGHTS */}
       <Animated.View entering={FadeInDown.duration(350).delay(110)} style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="🧠 Smart Insights" />
+          <SectionHeader title="🧠 Smart Insights" />
           {insights.map((ins, i) => (
             <AlertRow key={i} icon={ins.icon} msg={ins.msg} color={ins.color} last={i===insights.length-1} />
           ))}
@@ -184,7 +184,7 @@ export default function InsightsScreen() {
       {overspendCats.length > 0 && (
         <Animated.View entering={FadeInDown.duration(350).delay(130)} style={{ marginHorizontal:SP.md }}>
           <GCard colors={['#1f0a0a','#3d0a0a']} style={{ marginBottom:12 }}>
-            <SH title="⚠️ Overspending Alert" rightColor="#EF4444" />
+            <SectionHeader title="⚠️ Overspending Alert" rightColor="#EF4444" />
             {overspendCats.map((e, i) => (
               <View key={i} style={{ backgroundColor:'#EF444410', borderRadius:11, padding:SP.sm+2, marginBottom:7, borderWidth:1, borderColor:'#EF444428', flexDirection:'row', gap:9, alignItems:'flex-start' }}>
                 <Text style={{ fontSize:16 }}>{e.icon||'💳'}</Text>
@@ -201,7 +201,7 @@ export default function InsightsScreen() {
       {debts.some(d_ => Number(d_?.rate||0) >= 24) && (
         <Animated.View entering={FadeInDown.duration(350).delay(150)} style={{ marginHorizontal:SP.md }}>
           <Card style={{ marginBottom:12, borderColor:'#EF444430', borderWidth:1 }}>
-            <SH title="🔥 High-Rate Debt Risk" rightColor="#EF4444" />
+            <SectionHeader title="🔥 High-Rate Debt Risk" rightColor="#EF4444" />
             {debts.filter(d_ => Number(d_?.rate||0) >= 24).map((dbt, i) => (
               <AlertRow key={i} icon="🔥" msg={`${dbt.name||'Loan'} at ${dbt.rate}% — this rate eats your wealth. Pay ₹2K extra/mo.`} color="#EF4444" last={i===debts.length-1} />
             ))}
@@ -212,7 +212,7 @@ export default function InsightsScreen() {
       {/* TRANSACTIONS */}
       <Animated.View entering={FadeInDown.duration(350).delay(170)} style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Recent Transactions" right={transactions.length > 0 ? `${transactions.length} total` : undefined} />
+          <SectionHeader title="Recent Transactions" right={transactions.length > 0 ? `${transactions.length} total` : undefined} />
           {transactions.length === 0 ? (
             <Empty icon="📋" title="No transactions yet" sub="Add expenses in the Money tab." />
           ) : (
@@ -226,7 +226,7 @@ export default function InsightsScreen() {
       {/* CATEGORY BREAKDOWN */}
       <Animated.View entering={FadeInDown.duration(350).delay(190)} style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Spending by Category" />
+          <SectionHeader title="Spending by Category" />
           {catData.length === 0 ? (
             <Empty icon="💳" title="No expenses added" sub="Add your monthly expenses to see category breakdown." />
           ) : (
@@ -241,7 +241,7 @@ export default function InsightsScreen() {
       <Animated.View entering={FadeInDown.duration(350).delay(210)} style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
           <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
-            <SH title="Earnings Trend" />
+            <SectionHeader title="Earnings Trend" />
             <View style={{ alignItems:'flex-end' }}>
               <Text style={{ fontWeight:'800', fontSize:17, color:'#22C55E' }}>
                 {fmt((s.monthlyData||[]).slice(0,(s.currentMonth||0)+1).reduce((a,v)=>a+(Number(v)||0),0))}
@@ -258,7 +258,7 @@ export default function InsightsScreen() {
 
       <Animated.View entering={FadeInDown.duration(350).delay(225)} style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Spending Trend" />
+          <SectionHeader title="Spending Trend" />
           {sbars.every(b => b.v === 0)
             ? <Empty icon="📉" title="No spending data" sub="Add expenses to see spending trends." />
             : (
@@ -280,7 +280,7 @@ export default function InsightsScreen() {
       {leaves.length > 0 && leaves.some(l => l.total > 0) && (
         <Animated.View entering={FadeInDown.duration(350).delay(240)} style={{ marginHorizontal:SP.md }}>
           <Card style={{ marginBottom:12 }}>
-            <SH title="Leave Balance" />
+            <SectionHeader title="Leave Balance" />
             {leaves.map((l, i) => {
               const left = (l.total||0) - (l.used||0);
               return (
@@ -305,7 +305,7 @@ export default function InsightsScreen() {
       {/* NET WORTH */}
       <Animated.View entering={FadeInDown.duration(350).delay(255)} style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Net Worth" />
+          <SectionHeader title="Net Worth" />
           <View style={{ flexDirection:'row', gap:7, marginBottom:14, flexWrap:'wrap' }}>
             <Chip label={`Assets: ${fmt(d.totalAssets)}`} color="#22C55E" />
             <Chip label={`Debts: ${fmt(d.debtTotal)}`}   color="#EF4444" />
@@ -328,5 +328,5 @@ export default function InsightsScreen() {
   );
 }
 
-// Local alias for RADIUS (avoids import conflict with SH)
+// Local alias for RADIUS (avoids import conflict with SectionHeader)
 const R_val = { md:12, xl:20 };

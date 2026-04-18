@@ -6,7 +6,7 @@ import { useApp } from './AppContext';
 import { useTheme } from './ThemeContext';
 import { fmt, safePct, calcScore } from './helpers';
 import { SPACING as SP, RADIUS as R } from './theme';
-import { Card, GCard, Chip, Bar, SH, Toggle } from './UI';
+import { Card, GCard, Chip, Bar, SectionHeader, Toggle } from './UI';
 import { clearState } from './storage';
 
 export default function ProfileScreen() {
@@ -94,7 +94,7 @@ export default function ProfileScreen() {
       {/* ACHIEVEMENTS */}
       <View style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Achievements" right={`${achievements.filter(a=>a.unlocked).length}/${achievements.length}`} rightColor="#F59E0B" />
+          <SectionHeader title="Achievements" right={`${achievements.filter(a=>a.unlocked).length}/${achievements.length}`} rightColor="#F59E0B" />
           <View style={{ flexDirection:'row', flexWrap:'wrap', gap:10 }}>
             {achievements.map((a,i) => (
               <View key={i} style={{ width:'28%', alignItems:'center' }}>
@@ -114,7 +114,7 @@ export default function ProfileScreen() {
       {/* THEME */}
       <View style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Appearance" />
+          <SectionHeader title="Appearance" />
           <Pressable onPress={cycleTheme} style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingVertical:SP.sm }}>
             <View style={{ flexDirection:'row', gap:12, alignItems:'center' }}>
               <Text style={{ fontSize:19 }}>🎨</Text>
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
       {/* PRIVACY */}
       <View style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Privacy & Security" />
+          <SectionHeader title="Privacy & Security" />
           {[
             { key:'maskAmounts',   icon:'👁️', label:'Mask Amounts',   sub:'Hide numbers in public' },
             { key:'biometricLock', icon:'🔐', label:'Biometric Lock', sub:'Face ID / Fingerprint'  },
@@ -153,7 +153,7 @@ export default function ProfileScreen() {
       {/* NOTIFICATIONS */}
       <View style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Reminders" />
+          <SectionHeader title="Reminders" />
           {[
             {key:'salary',icon:'💰',label:'Salary Day'},
             {key:'sip',   icon:'📈',label:'SIP Alert'},
@@ -174,7 +174,7 @@ export default function ProfileScreen() {
       {/* ACTIONS */}
       <View style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
-          <SH title="Data & Actions" />
+          <SectionHeader title="Data & Actions" />
           {[
             {icon:'💾',label:'Export JSON Backup', right:'↓ Save',  action:handleExport},
             {icon:'🔄',label:'Reset All Data',     right:'Reset',   action:handleReset, danger:true},
