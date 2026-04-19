@@ -18,7 +18,7 @@ import {
 } from './UI';
 import { ScoreRing, DonutChart, BarChart } from './Charts';
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const { state: s, set } = useApp();
   const { T }             = useTheme();
   const [showAllInsights, setShowAllInsights] = useState(false);
@@ -335,6 +335,29 @@ export default function HomeScreen() {
           )}
         </Card>
       </View>
+
+      {/* QUICK TOOLS */}
+      <View style={{ marginHorizontal: SP.md, marginTop: 12 }}>
+        <Card>
+          <SH title="Quick Tools" />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {[
+              { icon: '🧾', label: 'Tax Estimator',  screen: 'Tax'       },
+              { icon: '📊', label: 'Simulator',       screen: 'Simulator' },
+              { icon: '🧠', label: 'AI Decisions',    screen: 'Decisions' },
+              { icon: '🌊', label: 'Cash Flow',       screen: 'CashFlow'  },
+            ].map((tool) => (
+              <Pressable key={tool.screen}
+                onPress={() => navigation?.navigate?.(tool.screen)}
+                style={{ width: '47%', backgroundColor: T.l2, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: T.border }}>
+                <Text style={{ fontSize: 22 }}>{tool.icon}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: T.t1, flex: 1 }}>{tool.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Card>
+      </View>
+
     </ScrollView>
   );
 }

@@ -1,384 +1,391 @@
-// src/screens/GrowthScreen.js
+// GrowthScreen.js
 import React, { useState, useMemo } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from './AppContext';
-import { C, S, R } from './theme';
-import { fmt as inr, pct, sipMaturity, retirementCorpus as retirementTarget, efTarget as emergencyTarget, monthlyNeeded as monthlyForGoal, calcDecisions, MONTHS_SHORT } from './calculations';
-import { Card, GCard, Chip, Bar, SH, StatRow } from './UIComponents';
+import { useTheme } from './ThemeContext';
+import { SPACING as SP, RADIUS as R } from './theme';
+import { Card, SH, Bar, Chip, StatRow, GCard, Empty, Input } from './UI';
+import { fmt, safeNum, safePct, deriveState, efTarget } from './helpers';
 
-const TABS = [['career','🚀 Career'],['simulator','🎯 Simulate'],['decisions','🧠 Decide'],['tax','🧾 Tax']];
+const TABS = [
+  { key: 'career',    label: '🚀 Career'    },
+  { key: 'ef',        label: '🛟 Emrg Fund' },
+  { key: 'behaviour', label: '📊 Analytics' },
+];
 
-export default function GrowthScreen() {
-  const { state: s, set } = useApp();
-  const [tab, setTab] = useState('career');
+// ── CAREER ROADMAP ────────────────────────────────────────
+const CAREER_LADDER = [
+  {
+    role: 'HSE Officer', years: '0–3 years', icon: '🛡️', color: '#4F8CFF', active: true,
+    skills: ['Risk Assessment', 'Incident Investigation', 'HIRA', 'Safety Audits'],
+    salRange: '₹3L – ₹6L',
+  },
+  {
+    role: 'Senior HSE Engineer', years: '3–6 years', icon: '⚡', color: '#22C55E', active: false,
+    skills: ['ISO 45001 Lead', 'EHS Management', 'Team Leadership', 'Contractor Management'],
+    salRange: '₹6L – ₹12L',
+  },
+  {
+    role: 'HSE Manager', years: '6–10 years', icon: '🎯', color: '#A78BFA', active: false,
+    skills: ['HSE Strategy', 'Budget Management', 'Regulatory Compliance', 'NEBOSH Diploma'],
+    salRange: '₹12L – ₹25L',
+  },
+  {
+    role: 'HSE Director / VP', years: '10+ years', icon: '👑', color: '#F59E0B', active: false,
+    skills: ['Corporate HSE', 'Board Reporting', 'Global Standards', 'P&L Ownership'],
+    salRange: '₹25L+',
+  },
+];
 
-  const totalIncome = s.incomes.reduce((a, x) => a + x.amount, 0) * 12;
-  const retYears    = Math.max(1, (s.retirementAge || 55) - (s.userAge || 28));
-  const retCorpus   = retirementTarget(totalIncome, retYears);
-  const curSavings  = s.assets.reduce((a, x) => a + x.value, 0);
-  const monthNeeded = monthlyForGoal(retCorpus, curSavings, retYears * 12);
-  const decisions   = useMemo(() => calcDecisions(s), [s]);
+const CERTIFICATIONS = [
+  { name: 'NEBOSH IGC',   body: 'NEBOSH UK',  icon: '🏅', importance: 'Essential', color: '#22C55E' },
+  { name: 'IOSH Managing Safely', body: 'IOSH UK', icon: '🎖️', importance: 'Essential', color: '#4F8CFF' },
+  { name: 'ISO 45001 LA', body: 'BSI / IRCA', icon: '📋', importance: 'High', color: '#A78BFA' },
+  { name: 'NEBOSH Diploma',body: 'NEBOSH UK', icon: '🏆', importance: 'Advanced', color: '#F59E0B' },
+  { name: 'ADIS',         body: 'IICPE',      icon: '📝', importance: 'Specialist', color: '#14B8A6' },
+  { name: 'CSP (USA)',     body: 'BCSP',       icon: '🌟', importance: 'Premium',   color: '#EF4444' },
+];
 
-  const oldTax = totalIncome > 1500000 ? (totalIncome-1500000)*.3+375000 : totalIncome > 1200000 ? (totalIncome-1200000)*.25+225000 : totalIncome > 1000000 ? (totalIncome-1000000)*.2+112500 : 0;
-  const newTax = totalIncome > 1500000 ? (totalIncome-1500000)*.3+187500 : totalIncome > 1200000 ? (totalIncome-1200000)*.2+127500 : 0;
-  const better = oldTax < newTax ? 'Old' : 'New';
+function CareerTab() {
+  const { T } = useTheme();
+  const { state: s } = useApp();
+  const certs = s.certifications || [];
+  const [expandedCert, setExpandedCert] = useState(null);
 
-  const ladder = [
-    { role:'HSE Officer',  years:'0–3 yrs', icon:'🛡️', color:C.blue,   active:true  },
-    { role:'Senior HSE',   years:'3–6 yrs', icon:'⚡',  color:C.green,  active:false },
-    { role:'HSE Manager',  years:'6–10 yrs',icon:'🎯', color:C.purple, active:false },
-    { role:'HSE Director', years:'10+ yrs', icon:'👑', color:C.amber,  active:false },
-  ];
+  const getCertStatus = (name) => {
+    const found = certs.find(c => c?.name?.includes(name.split(' ')[0]));
+    return found?.status || 'Planned';
+  };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-      <View style={styles.header}>
-        <Text style={styles.pageTitle}>Growth</Text>
-        <Text style={styles.pageSub}>Career · Simulator · Decisions · Retirement</Text>
+    <View>
+      {/* ROADMAP */}
+      <Card style={{ marginBottom: 12 }}>
+        <SH title="HSE Career Roadmap" right="Your path" />
+        {CAREER_LADDER.map((step, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 13 }}>
+            <View style={{ alignItems: 'center' }}>
+              <View style={[st.ladderIcon, {
+                backgroundColor: step.active ? step.color : T.l2,
+                borderColor: step.active ? 'transparent' : T.border,
+                shadowColor: step.active ? step.color : 'transparent',
+                shadowOpacity: step.active ? 0.5 : 0,
+                shadowRadius: 12, elevation: step.active ? 6 : 0,
+              }]}>
+                <Text style={{ fontSize: 18 }}>{step.icon}</Text>
+              </View>
+              {i < CAREER_LADDER.length - 1 && (
+                <View style={{ width: 2, height: 48, marginVertical: 3, backgroundColor: step.active ? step.color + '60' : T.border }} />
+              )}
+            </View>
+            <View style={{ flex: 1, paddingTop: 8, paddingBottom: i < CAREER_LADDER.length - 1 ? 0 : 0 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: step.active ? step.color : T.t2 }}>{step.role}</Text>
+                {step.active && <Chip label="You are here" color={step.color} dot sm />}
+              </View>
+              <Text style={{ fontSize: 11, color: T.t3, marginBottom: 4 }}>{step.years} · {step.salRange}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: i < CAREER_LADDER.length - 1 ? 12 : 0 }}>
+                {step.skills.map(sk => (
+                  <View key={sk} style={{ backgroundColor: step.color + '15', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
+                    <Text style={{ fontSize: 10, color: step.color }}>{sk}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        ))}
+      </Card>
+
+      {/* CERTIFICATIONS */}
+      <Card style={{ marginBottom: 12 }}>
+        <SH title="Key Certifications" right={`${certs.filter(c=>c?.status==='Done').length} done`} rightColor="#22C55E" />
+        {CERTIFICATIONS.map((cert, i) => {
+          const status = getCertStatus(cert.name);
+          const statusColor = status === 'Done' ? '#22C55E' : status === 'In Progress' ? '#F59E0B' : T.t3;
+          return (
+            <View key={i} style={[{ flexDirection: 'row', alignItems: 'center', paddingVertical: 13, gap: 12 }, i < CERTIFICATIONS.length - 1 && { borderBottomWidth: 1, borderBottomColor: T.border }]}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: cert.color + '20', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 18 }}>{cert.icon}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: '600', fontSize: 13, color: T.t1 }}>{cert.name}</Text>
+                <Text style={{ fontSize: 11, color: T.t3, marginTop: 1 }}>{cert.body} · {cert.importance}</Text>
+              </View>
+              <Chip label={status} color={statusColor} sm />
+            </View>
+          );
+        })}
+      </Card>
+
+      {/* MILESTONES */}
+      <Card>
+        <SH title="Next Career Milestones" />
+        {[
+          { title: 'Complete ISO 45001 Lead Auditor', date: 'Next 3 months',  icon: '📋', color: '#A78BFA' },
+          { title: 'Apply for Senior HSE roles',       date: 'After 6 months', icon: '🎯', color: '#22C55E' },
+          { title: 'Start NEBOSH Diploma',             date: '1 year',         icon: '🏆', color: '#F59E0B' },
+          { title: 'Target HSE Manager positions',     date: '3–5 years',      icon: '👑', color: '#4F8CFF' },
+        ].map((m, i) => (
+          <View key={i} style={[{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }, i < 3 && { borderBottomWidth: 1, borderBottomColor: T.border }]}>
+            <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: m.color + '18', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20 }}>{m.icon}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '600', fontSize: 13, color: T.t1 }}>{m.title}</Text>
+              <Text style={{ fontSize: 11, color: T.t3, marginTop: 2 }}>{m.date}</Text>
+            </View>
+            <View style={{ width: 8, height: 8, borderRadius: 99, backgroundColor: m.color }} />
+          </View>
+        ))}
+      </Card>
+    </View>
+  );
+}
+
+// ── EMERGENCY FUND TRACKER ────────────────────────────────
+function EFTab() {
+  const { T }         = useTheme();
+  const { state: s }  = useApp();
+  const [manualSaved, setManualSaved] = useState('');
+
+  const d = useMemo(() => { try { return deriveState(s); } catch { return { needsBudget:0, totalIncome:0 }; } }, [s]);
+
+  const monthly  = d.needsBudget || d.totalIncome * 0.5;
+  const target3  = monthly * 3;
+  const target6  = monthly * 6;
+  const efGoal   = (s.goals || []).find(g => g?.title?.toLowerCase().includes('emergency'));
+  const saved    = safeNum(manualSaved) || safeNum(efGoal?.saved);
+
+  return (
+    <View>
+      <Card style={{ marginBottom: 12 }}>
+        <SH title="Your Emergency Fund" />
+        <Input label="Current emergency savings (₹)" value={manualSaved}
+          onChange={setManualSaved} type="numeric" prefix="₹" placeholder={saved > 0 ? String(saved) : 'Enter amount'} />
+        {d.totalIncome === 0 && (
+          <View style={{ backgroundColor: '#F59E0B10', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#F59E0B30' }}>
+            <Text style={{ fontSize: 12, color: '#F59E0B' }}>Add salary in Money tab for accurate calculation</Text>
+          </View>
+        )}
+      </Card>
+
+      {monthly > 0 && (
+        <>
+          {/* 3-MONTH */}
+          <Card style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <View>
+                <Text style={{ fontSize: 11, color: T.t3, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>3-Month Fund</Text>
+                <Text style={{ fontSize: 24, fontWeight: '800', color: T.t1 }}>{fmt(target3)}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 22, fontWeight: '800', color: safePct(saved, target3) >= 100 ? '#22C55E' : '#4F8CFF' }}>
+                  {safePct(saved, target3)}%
+                </Text>
+                {safePct(saved, target3) >= 100 && <Chip label="Achieved ✓" color="#22C55E" sm />}
+              </View>
+            </View>
+            <Bar value={saved} total={target3} color="#4F8CFF" h={10} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+              <Text style={{ fontSize: 12, color: T.t3 }}>Saved: {fmt(saved)}</Text>
+              <Text style={{ fontSize: 12, color: T.t3 }}>Need: {fmt(Math.max(0, target3 - saved))} more</Text>
+            </View>
+          </Card>
+
+          {/* 6-MONTH */}
+          <Card style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <View>
+                <Text style={{ fontSize: 11, color: T.t3, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>6-Month Fund (Recommended)</Text>
+                <Text style={{ fontSize: 24, fontWeight: '800', color: T.t1 }}>{fmt(target6)}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 22, fontWeight: '800', color: safePct(saved, target6) >= 100 ? '#22C55E' : '#EF4444' }}>
+                  {safePct(saved, target6)}%
+                </Text>
+                {safePct(saved, target6) >= 100 && <Chip label="Achieved ✓" color="#22C55E" sm />}
+              </View>
+            </View>
+            <Bar value={saved} total={target6} color="#22C55E" h={10} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+              <Text style={{ fontSize: 12, color: T.t3 }}>Saved: {fmt(saved)}</Text>
+              <Text style={{ fontSize: 12, color: T.t3 }}>Remaining: {fmt(Math.max(0, target6 - saved))}</Text>
+            </View>
+          </Card>
+
+          {/* STATS */}
+          <Card>
+            <SH title="Fund Details" />
+            <StatRow label="Monthly expenses (est.)" value={fmt(monthly)} />
+            <StatRow label="3-month target"          value={fmt(target3)} color="#4F8CFF" />
+            <StatRow label="6-month target"          value={fmt(target6)} color="#22C55E" />
+            <StatRow label="Currently saved"         value={fmt(saved)} color={saved >= target6 ? '#22C55E' : '#F59E0B'} />
+            <StatRow label="Monthly to complete 6M"  value={saved < target6 ? fmt(Math.round((target6 - saved) / 6)) : 'Complete! 🎉'} color="#A78BFA" last />
+          </Card>
+        </>
+      )}
+    </View>
+  );
+}
+
+// ── BEHAVIOR ANALYTICS ────────────────────────────────────
+function BehaviourTab() {
+  const { T }        = useTheme();
+  const { state: s } = useApp();
+
+  const history = s.behaviorHistory || [];
+  const expenses = s.expenses || [];
+  const needsPct = expenses.find(e => e?.label === 'Needs')?.pct || 0;
+  const wantsPct = expenses.find(e => e?.label === 'Wants')?.pct || 0;
+  const savPct   = expenses.find(e => e?.label === 'Savings')?.pct || 0;
+
+  const trendWants = history.length >= 2
+    ? history[history.length - 1]?.wantsPct - history[0]?.wantsPct
+    : 0;
+
+  const getRating = (pct, type) => {
+    if (type === 'savings') return pct >= 20 ? 'Great' : pct >= 15 ? 'OK' : 'Low';
+    if (type === 'wants')   return pct <= 30 ? 'Great' : pct <= 40 ? 'OK' : 'High';
+    if (type === 'needs')   return pct <= 50 ? 'Great' : pct <= 60 ? 'OK' : 'High';
+    return 'OK';
+  };
+
+  const ratingColor = (r) => r === 'Great' ? '#22C55E' : r === 'OK' ? '#F59E0B' : '#EF4444';
+
+  return (
+    <View>
+      {/* CURRENT SPLIT */}
+      <Card style={{ marginBottom: 12 }}>
+        <SH title="Current Expense Split" />
+        {[
+          { label: 'Needs',   pct: needsPct, target: 50, color: '#4F8CFF', type: 'needs'   },
+          { label: 'Wants',   pct: wantsPct, target: 30, color: '#F59E0B', type: 'wants'   },
+          { label: 'Savings', pct: savPct,   target: 20, color: '#22C55E', type: 'savings' },
+        ].map((e, i) => {
+          const rating = getRating(e.pct, e.type);
+          return (
+            <View key={i} style={[{ paddingVertical: 13 }, i < 2 && { borderBottomWidth: 1, borderBottomColor: T.border }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: e.color }} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: T.t1 }}>{e.label}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: e.color }}>{e.pct}%</Text>
+                  <Chip label={rating} color={ratingColor(rating)} sm />
+                </View>
+              </View>
+              <Bar value={e.pct} total={100} color={e.color} h={7} />
+              <Text style={{ fontSize: 11, color: T.t3, marginTop: 5 }}>Target: {e.target}% · Currently: {e.pct > e.target ? `+${e.pct - e.target}% over` : e.pct < e.target ? `−${e.target - e.pct}% under` : 'Exactly right'}</Text>
+            </View>
+          );
+        })}
+      </Card>
+
+      {/* 50/30/20 RULE */}
+      <Card style={{ marginBottom: 12 }}>
+        <SH title="50/30/20 Rule Analysis" />
+        <View style={{ backgroundColor: '#4F8CFF10', borderRadius: 12, padding: 13, borderWidth: 1, borderColor: '#4F8CFF25', marginBottom: 12 }}>
+          <Text style={{ fontSize: 13, color: T.t2, lineHeight: 20 }}>
+            <Text style={{ fontWeight: '700', color: '#4F8CFF' }}>50% Needs</Text>
+            {' '}(rent, food, utilities) → <Text style={{ fontWeight: '700', color: '#F59E0B' }}>30% Wants</Text>
+            {' '}(entertainment, dining) → <Text style={{ fontWeight: '700', color: '#22C55E' }}>20% Savings</Text>
+            {' '}(investments + emergency)
+          </Text>
+        </View>
+        <StatRow label="Your Needs"    value={`${needsPct}% (target 50%)`} color={needsPct <= 55 ? '#22C55E' : '#EF4444'} />
+        <StatRow label="Your Wants"    value={`${wantsPct}% (target 30%)`} color={wantsPct <= 30 ? '#22C55E' : '#EF4444'} />
+        <StatRow label="Your Savings"  value={`${savPct}% (target 20%)`}   color={savPct >= 20 ? '#22C55E' : '#EF4444'} last />
+      </Card>
+
+      {/* 3-MONTH TREND */}
+      {history.length > 0 ? (
+        <Card style={{ marginBottom: 12 }}>
+          <SH title="3-Month Behaviour Trend" />
+          {trendWants !== 0 && (
+            <View style={[{ flexDirection: 'row', gap: 9, padding: 10, borderRadius: 11, borderWidth: 1, marginBottom: 12 }, { backgroundColor: trendWants > 0 ? '#EF444410' : '#22C55E10', borderColor: trendWants > 0 ? '#EF444428' : '#22C55E28' }]}>
+              <Text style={{ fontSize: 16 }}>{trendWants > 0 ? '📈' : '📉'}</Text>
+              <Text style={{ fontSize: 12, color: trendWants > 0 ? '#EF4444' : '#22C55E', lineHeight: 18, flex: 1 }}>
+                {trendWants > 0
+                  ? `Wants spending has increased by ${trendWants}% over 3 months. Review discretionary expenses.`
+                  : `Wants spending reduced by ${Math.abs(trendWants)}% — great discipline! Keep it up.`}
+              </Text>
+            </View>
+          )}
+          {history.map((b, i) => (
+            <View key={i} style={[{ paddingVertical: 12 }, i < history.length - 1 && { borderBottomWidth: 1, borderBottomColor: T.border }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontWeight: '600', fontSize: 14, color: T.t1 }}>{b.month}</Text>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <Chip label={`Wants ${b.wantsPct}%`} color={b.wantsPct > 30 ? '#EF4444' : '#22C55E'} sm />
+                  <Chip label={`${b.attended} days`}   color={b.attended >= 22 ? '#22C55E' : '#F59E0B'} sm />
+                </View>
+              </View>
+              <Bar value={b.attended} total={26} color={b.attended >= 22 ? '#22C55E' : '#F59E0B'} h={5} />
+            </View>
+          ))}
+        </Card>
+      ) : (
+        <Card style={{ marginBottom: 12 }}>
+          <Empty icon="📊" title="Building history" sub="Your behaviour data will appear here as you track monthly." />
+        </Card>
+      )}
+
+      {/* TIPS */}
+      <Card>
+        <SH title="Improvement Tips" />
+        {[
+          { icon: '🎯', tip: 'Automate savings on salary day — transfer 20% immediately' },
+          { icon: '📱', tip: 'Delete shopping apps for 30 days to reduce impulse spending' },
+          { icon: '🍱', tip: 'Meal prep on Sundays — saves ₹3,000-5,000/month on food' },
+          { icon: '📊', tip: 'Review subscriptions monthly — cancel unused ones' },
+          { icon: '💳', tip: 'Use cash/UPI budget for wants — physical money feels more real' },
+        ].map((t, i) => (
+          <View key={i} style={[{ flexDirection: 'row', gap: 12, paddingVertical: 10 }, i < 4 && { borderBottomWidth: 1, borderBottomColor: T.border }]}>
+            <Text style={{ fontSize: 20 }}>{t.icon}</Text>
+            <Text style={{ fontSize: 13, color: T.t2, lineHeight: 19, flex: 1 }}>{t.tip}</Text>
+          </View>
+        ))}
+      </Card>
+    </View>
+  );
+}
+
+// ── MAIN SCREEN ───────────────────────────────────────────
+export default function GrowthScreen() {
+  const { T } = useTheme();
+  const [tab, setTab] = useState('career');
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: T.bg }} showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 100 }}>
+      <View style={{ paddingTop: 56, paddingHorizontal: SP.md, paddingBottom: SP.md }}>
+        <Text style={{ fontSize: 27, fontWeight: '800', color: T.t1, letterSpacing: -0.5 }}>Growth</Text>
+        <Text style={{ fontSize: 13, color: T.t3, marginTop: 2 }}>Career · Emergency Fund · Analytics</Text>
       </View>
 
-      {/* SEGMENT TABS */}
-      <View style={styles.tabWrap}>
-        {TABS.map(([k, l]) => {
-          const on = tab === k;
-          return <Pressable key={k} onPress={() => setTab(k)} style={[styles.tabBtn, on && styles.tabBtnActive]}><Text style={[styles.tabText, on && styles.tabTextActive]}>{l}</Text></Pressable>;
+      {/* TABS */}
+      <View style={{ flexDirection: 'row', marginHorizontal: SP.md, marginBottom: 16, backgroundColor: T.l1, borderRadius: 14, padding: 5, gap: 4, borderWidth: 1, borderColor: T.border }}>
+        {TABS.map(({ key, label }) => {
+          const on = tab === key;
+          return (
+            <Pressable key={key} onPress={() => setTab(key)}
+              style={{ flex: 1, paddingVertical: 9, borderRadius: 11, alignItems: 'center', backgroundColor: on ? '#4F8CFF' : 'transparent' }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: on ? '#fff' : T.t3 }}>{label}</Text>
+            </Pressable>
+          );
         })}
       </View>
 
-      {/* CAREER */}
-      {tab === 'career' && (
-        <View style={styles.tabContent}>
-          <Card style={styles.section}>
-            <SH title="HSE Career Roadmap" />
-            {ladder.map((step, i) => (
-              <View key={i} style={styles.ladderRow}>
-                <View style={styles.ladderLeft}>
-                  <View style={[styles.ladderIcon, { backgroundColor: step.active ? step.color : C.layer2, shadowColor: step.active ? step.color : 'transparent', borderColor: step.active ? 'transparent' : C.border }]}>
-                    <Text style={{ fontSize: 18 }}>{step.icon}</Text>
-                  </View>
-                  {i < ladder.length - 1 && <View style={[styles.ladderLine, { backgroundColor: step.active ? step.color + '60' : 'rgba(255,255,255,0.07)' }]} />}
-                </View>
-                <View style={[styles.ladderRight, { paddingBottom: i < ladder.length - 1 ? 40 : 0 }]}>
-                  <View style={styles.ladderTitleRow}>
-                    <Text style={[styles.ladderRole, { color: step.active ? step.color : C.t2 }]}>{step.role}</Text>
-                    {step.active && <Chip label="You are here" color={step.color} dot />}
-                  </View>
-                  <Text style={styles.ladderYears}>{step.years}</Text>
-                </View>
-              </View>
-            ))}
-          </Card>
-
-          <Card style={styles.section}>
-            <SH title="Certifications" right="Add +" />
-            {s.certifications.map((c, i) => (
-              <View key={i} style={[styles.certRow, i < s.certifications.length - 1 && styles.certBorder]}>
-                <View style={[styles.certIcon, { backgroundColor: c.color + '20' }]}><Text style={{ fontSize: 19 }}>{c.icon}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.certName}>{c.name}</Text>
-                  <Text style={styles.certBody}>{c.body}</Text>
-                </View>
-                <Chip label={c.status} color={c.status === 'Done' ? C.green : c.status === 'In Progress' ? C.amber : C.t3} />
-              </View>
-            ))}
-          </Card>
-
-          <Card style={styles.section}>
-            <SH title="Career Milestones" />
-            {[
-              { title:'Complete ISO 45001 LA', date:'Mar 2025', icon:'📋', color:C.amber },
-              { title:'Apply for Senior HSE',   date:'Jun 2025', icon:'🎯', color:C.green },
-              { title:'Start ADIS Cert',         date:'Aug 2025', icon:'📝', color:C.purple },
-            ].map((t, i) => (
-              <View key={i} style={[styles.milestoneRow, i < 2 && styles.milestoneBorder]}>
-                <View style={[styles.milestoneIcon, { backgroundColor: t.color + '16' }]}><Text style={{ fontSize: 20 }}>{t.icon}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.milestoneTitle}>{t.title}</Text>
-                  <Text style={styles.milestoneDate}>{t.date}</Text>
-                </View>
-                <View style={[styles.milestoneDot, { backgroundColor: t.color }]} />
-              </View>
-            ))}
-          </Card>
-        </View>
-      )}
-
-      {/* SIMULATOR */}
-      {tab === 'simulator' && (
-        <View style={styles.tabContent}>
-          {/* Salary hike */}
-          <Card style={styles.section}>
-            <SH title="Salary Hike Simulator" />
-            <View style={styles.simRow}>
-              <Text style={styles.simLabel}>Expected Hike</Text>
-              <Text style={[styles.simVal, { color: C.green }]}>+{s.simSalaryHike || 20}%</Text>
-            </View>
-            <View style={styles.sliderRow}>
-              <Pressable onPress={() => set({ simSalaryHike: Math.max(0, (s.simSalaryHike||20) - 5) })} style={styles.simBtn}><Text style={styles.simBtnT}>−</Text></Pressable>
-              <View style={{ flex: 1 }}><Bar value={s.simSalaryHike || 20} total={100} color={C.green} height={6} /></View>
-              <Pressable onPress={() => set({ simSalaryHike: Math.min(100, (s.simSalaryHike||20) + 5) })} style={styles.simBtn}><Text style={styles.simBtnT}>+</Text></Pressable>
-            </View>
-            <View style={[styles.simResult, { backgroundColor: C.greenDim, borderColor: C.green + '25' }]}>
-              <View style={styles.simResultRow}><Text style={styles.simResultLabel}>New Monthly Salary</Text><Text style={[styles.simResultVal, { color: C.green }]}>{fmt(s.salary * (1 + (s.simSalaryHike||20) / 100))}</Text></View>
-              <View style={styles.simResultRow}><Text style={styles.simResultLabel}>Extra/month</Text><Text style={styles.simResultValSm}>{fmt(s.salary * (s.simSalaryHike||20) / 100)}</Text></View>
-              <View style={styles.simResultRow}><Text style={styles.simResultLabel}>Extra/year</Text><Text style={styles.simResultValSm}>{fmt(s.salary * (s.simSalaryHike||20) / 100 * 12)}</Text></View>
-            </View>
-          </Card>
-
-          {/* SIP simulator */}
-          <Card style={styles.section}>
-            <SH title="SIP Growth Simulator" />
-            <View style={styles.simRow}><Text style={styles.simLabel}>SIP Multiplier</Text><Text style={[styles.simVal, { color: C.purple }]}>{s.simSipMulti || 2}x</Text></View>
-            <View style={styles.sliderRow}>
-              <Pressable onPress={() => set({ simSipMulti: Math.max(1, (s.simSipMulti||2) - 0.5) })} style={styles.simBtn}><Text style={styles.simBtnT}>−</Text></Pressable>
-              <View style={{ flex: 1 }}><Bar value={(s.simSipMulti||2) - 1} total={4} color={C.purple} height={6} /></View>
-              <Pressable onPress={() => set({ simSipMulti: Math.min(5, (s.simSipMulti||2) + 0.5) })} style={styles.simBtn}><Text style={styles.simBtnT}>+</Text></Pressable>
-            </View>
-            <View style={styles.simRow}><Text style={styles.simLabel}>Annual Step-Up</Text><Text style={[styles.simVal, { color: C.teal }]}>{s.simSipStepUp || 10}%</Text></View>
-            <View style={styles.sliderRow}>
-              <Pressable onPress={() => set({ simSipStepUp: Math.max(0, (s.simSipStepUp||10) - 5) })} style={styles.simBtn}><Text style={styles.simBtnT}>−</Text></Pressable>
-              <View style={{ flex: 1 }}><Bar value={s.simSipStepUp || 10} total={30} color={C.teal} height={6} /></View>
-              <Pressable onPress={() => set({ simSipStepUp: Math.min(30, (s.simSipStepUp||10) + 5) })} style={styles.simBtn}><Text style={styles.simBtnT}>+</Text></Pressable>
-            </View>
-            {(() => {
-              const base   = s.sips.reduce((a, x) => a + x.amount, 0);
-              const newSip = base * (s.simSipMulti || 2);
-              const mat1Y  = sipMaturity(newSip, 12, 14);
-              const mat5Y  = sipMaturity(newSip, 60, 14);
-              return (
-                <View style={[styles.simResult, { backgroundColor: C.purpleDim, borderColor: C.purple + '25' }]}>
-                  <View style={styles.simResultRow}><Text style={styles.simResultLabel}>New SIP/month</Text><Text style={[styles.simResultVal, { color: C.purple }]}>{fmt(newSip)}</Text></View>
-                  <View style={styles.simResultRow}><Text style={styles.simResultLabel}>1-Year corpus</Text><Text style={[styles.simResultValSm, { color: C.green }]}>{fmt(mat1Y)}</Text></View>
-                  <View style={styles.simResultRow}><Text style={styles.simResultLabel}>5-Year corpus</Text><Text style={[styles.simResultValSm, { color: C.green }]}>{fmt(mat5Y)}</Text></View>
-                </View>
-              );
-            })()}
-          </Card>
-
-          {/* Retirement */}
-          <Card style={styles.section}>
-            <SH title="Retirement Planner" />
-            <View style={styles.ageRow}>
-              {[{ label:'Current Age', key:'userAge' }, { label:'Retire At', key:'retirementAge' }].map((f) => (
-                <View key={f.key} style={styles.ageCard}>
-                  <Text style={styles.ageLabel}>{f.label}</Text>
-                  <View style={styles.ageAdjRow}>
-                    <Pressable onPress={() => set({ [f.key]: Math.max(18, (s[f.key]||28) - 1) })} style={styles.ageBtn}><Text style={styles.ageBtnT}>−</Text></Pressable>
-                    <Text style={styles.ageVal}>{s[f.key] || 28}</Text>
-                    <Pressable onPress={() => set({ [f.key]: Math.min(80, (s[f.key]||28) + 1) })} style={styles.ageBtn}><Text style={styles.ageBtnT}>+</Text></Pressable>
-                  </View>
-                </View>
-              ))}
-            </View>
-            <View style={[styles.simResult, { backgroundColor: C.purpleDim, borderColor: C.purple + '25' }]}>
-              {[
-                { l:'Years to retire',    v:`${retYears} years` },
-                { l:'Corpus needed',      v:fmt(retCorpus),   c:C.purple, big:true },
-                { l:'Current savings',    v:fmt(curSavings) },
-                { l:'Gap to fill',        v:fmt(Math.max(0, retCorpus - curSavings)), c:C.red },
-                { l:'Save/month needed',  v:fmt(monthNeeded), c:C.green, big:true },
-              ].map((r, i) => <View key={i} style={styles.simResultRow}><Text style={styles.simResultLabel}>{r.l}</Text><Text style={[r.big ? styles.simResultVal : styles.simResultValSm, r.c && { color: r.c }]}>{r.v}</Text></View>)}
-              <Bar value={curSavings} total={retCorpus} color={C.purple} height={5} />
-              <Text style={styles.retPct}>{pct(curSavings, retCorpus)}% of retirement goal reached</Text>
-            </View>
-          </Card>
-
-          {/* 5Y projection */}
-          <GCard colors={['#080e2a', '#0f2060']} style={styles.section}>
-            <SH title="5-Year Salary Projection" />
-            {[12, 28, 50, 75, 110].map((p, i) => (
-              <View key={i} style={styles.projRow}>
-                <Text style={styles.projYear}>Y{i + 1}</Text>
-                <View style={{ flex: 1 }}>
-                  <Bar value={Math.min(100, p)} total={100} color={C.blue} height={7} />
-                </View>
-                <Text style={styles.projVal}>{fmt(Math.round(s.salary * (1 + p / 100)))}</Text>
-              </View>
-            ))}
-          </GCard>
-        </View>
-      )}
-
-      {/* DECISIONS */}
-      {tab === 'decisions' && (
-        <View style={styles.tabContent}>
-          <View style={styles.decisionHeader}>
-            <Text style={{ fontSize: 22 }}>🧠</Text>
-            <View>
-              <Text style={styles.decisionTitle}>AI Decision Engine</Text>
-              <Text style={styles.decisionSub}>Based on your actual financial data</Text>
-            </View>
-          </View>
-          {decisions.map((d, i) => (
-            <Card key={i} style={styles.section}>
-              <View style={styles.decisionRow}>
-                <View style={[styles.decisionIcon, { backgroundColor: d.color + '18' }]}><Text style={{ fontSize: 20 }}>{d.icon}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.decisionQ}>{d.q}</Text>
-                  <Text style={[styles.decisionRec, { color: d.color }]}>{d.rec}</Text>
-                </View>
-              </View>
-              <View style={[styles.decisionReason, { backgroundColor: d.color + '10', borderColor: d.color + '22' }]}>
-                <Text style={styles.decisionReasonText}>{d.reason}</Text>
-              </View>
-            </Card>
-          ))}
-          {s.behaviorHistory && s.behaviorHistory.length > 0 && (
-            <Card style={styles.section}>
-              <SH title="Your Behavior Patterns" />
-              {s.behaviorHistory.map((b, i) => (
-                <View key={i} style={[styles.behaviorRow, i < s.behaviorHistory.length - 1 && styles.behaviorBorder]}>
-                  <Text style={styles.behaviorMonth}>{b.month}</Text>
-                  <View style={{ flex: 1, gap: 5 }}>
-                    <Bar value={b.attended} total={s.workingDays} color={b.attended >= 22 ? C.green : C.amber} height={4} />
-                  </View>
-                  <View style={{ gap: 5, alignItems: 'flex-end' }}>
-                    <Chip label={`Wants ${b.wantsPct}%`} color={b.wantsPct > 30 ? C.red : C.green} />
-                    <Chip label={`${b.attended} days`} color={b.attended >= 22 ? C.green : C.amber} />
-                  </View>
-                </View>
-              ))}
-            </Card>
-          )}
-        </View>
-      )}
-
-      {/* TAX */}
-      {tab === 'tax' && (
-        <View style={styles.tabContent}>
-          <Card style={styles.section}>
-            <SH title="Tax Estimator (India)" />
-            <View style={[styles.taxBadge, { backgroundColor: C.purpleDim, borderColor: C.purple + '28' }]}>
-              <Text style={{ fontSize: 17 }}>🏆</Text>
-              <Text style={[styles.taxBadgeText, { color: C.purple }]}><Text style={{ fontWeight: '700' }}>{better} Regime</Text> saves you more · Annual: {fmt(totalIncome)}</Text>
-            </View>
-            <View style={styles.taxGrid}>
-              {[{ label:'Old Regime', tax:oldTax, color:C.amber }, { label:'New Regime', tax:newTax, color:C.blue }].map((r) => (
-                <View key={r.label} style={[styles.taxCard, { backgroundColor: r.label.startsWith(better) ? r.color + '16' : C.layer2, borderColor: r.label.startsWith(better) ? r.color + '40' : C.border }]}>
-                  <Text style={styles.taxCardLabel}>{r.label}</Text>
-                  <Text style={[styles.taxCardVal, { color: r.label.startsWith(better) ? r.color : C.t1 }]}>{fmt(r.tax)}</Text>
-                  <Text style={styles.taxCardSub}>Annual Tax</Text>
-                  {r.label.startsWith(better) && <View style={{ marginTop: 6 }}><Chip label="Better ✓" color={r.color} /></View>}
-                </View>
-              ))}
-            </View>
-            <View style={styles.taxStats}>
-              {[
-                { l:'Monthly Tax',          v:fmt(Math.min(oldTax, newTax) / 12) },
-                { l:'Tax saved (vs other)', v:fmt(Math.abs(oldTax - newTax)), c:C.green },
-                { l:'Effective Rate',       v:`${((Math.min(oldTax, newTax) / Math.max(totalIncome, 1)) * 100).toFixed(1)}%` },
-              ].map((r, i) => (
-                <View key={i} style={[styles.taxStatRow, i < 2 && styles.taxStatBorder]}>
-                  <Text style={styles.taxStatLabel}>{r.l}</Text>
-                  <Text style={[styles.taxStatVal, r.c && { color: r.c }]}>{r.v}</Text>
-                </View>
-              ))}
-            </View>
-          </Card>
-
-          {/* Emergency Fund */}
-          {(() => {
-            const monthlyExp = s.salary * ((s.expenses.find((e) => e.label === 'Needs')?.pct || 50) / 100);
-            const needed     = emergencyTarget(monthlyExp);
-            const saved      = s.goals.find((g) => g.title.toLowerCase().includes('emergency'))?.saved || 0;
-            return (
-              <Card style={styles.section}>
-                <SH title="Emergency Fund Status" />
-                <View style={[styles.simResult, { backgroundColor: C.tealDim, borderColor: C.teal + '25' }]}>
-                  {[
-                    { l:'3-month target',  v:fmt(needed / 2) },
-                    { l:'6-month target',  v:fmt(needed), c:C.teal, big:true },
-                    { l:'Currently saved', v:fmt(saved), c:C.green },
-                    { l:'Still need',      v:fmt(Math.max(0, needed - saved)), c:C.red },
-                  ].map((r, i) => <View key={i} style={styles.simResultRow}><Text style={styles.simResultLabel}>{r.l}</Text><Text style={[r.big ? styles.simResultVal : styles.simResultValSm, r.c && { color: r.c }]}>{r.v}</Text></View>)}
-                  <Bar value={saved} total={needed} color={C.teal} height={6} />
-                  <Text style={styles.retPct}>{pct(saved, needed)}% of 6-month fund</Text>
-                </View>
-              </Card>
-            );
-          })()}
-        </View>
-      )}
+      <View style={{ paddingHorizontal: SP.md }}>
+        {tab === 'career'    && <CareerTab />}
+        {tab === 'ef'        && <EFTab />}
+        {tab === 'behaviour' && <BehaviourTab />}
+      </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container:        { flex: 1, backgroundColor: C.bg },
-  header:           { paddingTop: 56, paddingHorizontal: S.md, paddingBottom: S.md },
-  pageTitle:        { fontFamily: 'Syne_800ExtraBold', fontSize: 27, color: C.t1, letterSpacing: -0.5 },
-  pageSub:          { fontSize: 13, color: C.t3, marginTop: 2 },
-  tabWrap:          { flexDirection: 'row', marginHorizontal: S.md, marginBottom: S.md, backgroundColor: C.layer1, borderRadius: R.md + 2, padding: 5, gap: 4, borderWidth: 1, borderColor: C.border },
-  tabBtn:           { flex: 1, paddingVertical: 9, borderRadius: 11, alignItems: 'center' },
-  tabBtnActive:     { backgroundColor: C.blue },
-  tabText:          { fontSize: 11, fontWeight: '600', color: C.t3 },
-  tabTextActive:    { color: '#fff' },
-  tabContent:       { paddingHorizontal: S.md },
-  section:          { marginBottom: S.sm + 2 },
-  ladderRow:        { flexDirection: 'row', gap: 13 },
-  ladderLeft:       { alignItems: 'center' },
-  ladderIcon:       { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, shadowOpacity: 0.5, shadowRadius: 14, elevation: 6 },
-  ladderLine:       { width: 2, flex: 1, marginVertical: 4 },
-  ladderRight:      { flex: 1, paddingTop: 8 },
-  ladderTitleRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
-  ladderRole:       { fontFamily: 'Syne_700Bold', fontSize: 14 },
-  ladderYears:      { fontSize: 12, color: C.t3 },
-  certRow:          { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, gap: 11 },
-  certBorder:       { borderBottomWidth: 1, borderBottomColor: C.border },
-  certIcon:         { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  certName:         { fontWeight: '600', fontSize: 13, color: C.t1 },
-  certBody:         { fontSize: 12, color: C.t3, marginTop: 1 },
-  milestoneRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  milestoneBorder:  { borderBottomWidth: 1, borderBottomColor: C.border },
-  milestoneIcon:    { width: 42, height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  milestoneTitle:   { fontWeight: '600', fontSize: 13, color: C.t1 },
-  milestoneDate:    { fontSize: 12, color: C.t3, marginTop: 2 },
-  milestoneDot:     { width: 7, height: 7, borderRadius: 99 },
-  simRow:           { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  simLabel:         { fontSize: 13, color: C.t2 },
-  simVal:           { fontFamily: 'Syne_700Bold', fontSize: 14 },
-  sliderRow:        { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  simBtn:           { width: 36, height: 36, borderRadius: 10, backgroundColor: C.layer2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
-  simBtnT:          { fontSize: 20, color: C.t1, lineHeight: 26 },
-  simResult:        { borderRadius: 12, padding: S.sm + 4, borderWidth: 1, gap: 5 },
-  simResultRow:     { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
-  simResultLabel:   { fontSize: 12, color: C.t2 },
-  simResultVal:     { fontFamily: 'Syne_700Bold', fontSize: 14 },
-  simResultValSm:   { fontWeight: '600', fontSize: 13, color: C.t1 },
-  retPct:           { fontSize: 11, color: C.t3, marginTop: 5 },
-  ageRow:           { flexDirection: 'row', gap: 9, marginBottom: 13 },
-  ageCard:          { flex: 1, backgroundColor: C.layer2, borderRadius: 11, padding: S.sm + 4, borderWidth: 1, borderColor: C.border },
-  ageLabel:         { fontSize: 10, color: C.t3, marginBottom: 7 },
-  ageAdjRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  ageBtn:           { width: 28, height: 28, borderRadius: 8, backgroundColor: C.layer1, alignItems: 'center', justifyContent: 'center' },
-  ageBtnT:          { fontSize: 18, color: C.t1 },
-  ageVal:           { fontFamily: 'Syne_700Bold', fontSize: 20, color: C.t1 },
-  projRow:          { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  projYear:         { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.35)', width: 28 },
-  projVal:          { fontFamily: 'Syne_700Bold', fontSize: 13, color: 'rgba(255,255,255,0.9)', width: 72, textAlign: 'right' },
-  decisionHeader:   { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: C.layer2, borderRadius: 13, padding: S.sm + 4, marginHorizontal: S.md, marginBottom: S.sm + 2, borderWidth: 1, borderColor: C.border },
-  decisionTitle:    { fontWeight: '700', fontSize: 14, color: C.t1 },
-  decisionSub:      { fontSize: 12, color: C.t3 },
-  decisionRow:      { flexDirection: 'row', gap: 11, alignItems: 'flex-start', marginBottom: 11 },
-  decisionIcon:     { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  decisionQ:        { fontSize: 12, color: C.t3, marginBottom: 3 },
-  decisionRec:      { fontFamily: 'Syne_800ExtraBold', fontSize: 15 },
-  decisionReason:   { borderRadius: 11, padding: S.sm + 2, borderWidth: 1 },
-  decisionReasonText:{ fontSize: 13, color: C.t2, lineHeight: 19 },
-  behaviorRow:      { paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  behaviorBorder:   { borderBottomWidth: 1, borderBottomColor: C.border },
-  behaviorMonth:    { fontWeight: '600', fontSize: 13, color: C.t1, width: 32 },
-  taxBadge:         { flexDirection: 'row', gap: 9, padding: S.sm + 4, borderRadius: 11, borderWidth: 1, marginBottom: 13, alignItems: 'center' },
-  taxBadgeText:     { fontSize: 13, flex: 1, lineHeight: 19 },
-  taxGrid:          { flexDirection: 'row', gap: 10, marginBottom: 13 },
-  taxCard:          { flex: 1, borderRadius: 13, padding: 13, alignItems: 'center', borderWidth: 1 },
-  taxCardLabel:     { fontSize: 11, color: C.t3, marginBottom: 5 },
-  taxCardVal:       { fontFamily: 'Syne_800ExtraBold', fontSize: 19 },
-  taxCardSub:       { fontSize: 10, color: C.t3, marginTop: 4 },
-  taxStats:         { backgroundColor: C.layer2, borderRadius: 11, padding: S.sm + 4 },
-  taxStatRow:       { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
-  taxStatBorder:    { borderBottomWidth: 1, borderBottomColor: C.border },
-  taxStatLabel:     { fontSize: 12, color: C.t2 },
-  taxStatVal:       { fontWeight: '700', fontSize: 13, color: C.t1 },
+const st = StyleSheet.create({
+  ladderIcon: { width: 42, height: 42, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

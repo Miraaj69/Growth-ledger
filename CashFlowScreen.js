@@ -1,274 +1,169 @@
-// CashFlowScreen.js — totalIncome = derived().totalIncome (SAME as HomeScreen)
+// CashFlowScreen.js
 import React, { useMemo } from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useApp } from './AppContext';
-import { C, S, R } from './theme';
-import { fmt, pct, derived, MONTHS_FULL } from './calculations';
-import { Card, Chip, Bar, SH } from './UIComponents';
+import { useTheme } from './ThemeContext';
+import { SPACING as SP, RADIUS as R } from './theme';
+import { Card, SH, Bar, Chip, StatRow, GCard, Empty } from './UI';
+import { fmt, safeNum, safePct, deriveState, MONTHS_FULL } from './helpers';
 
 export default function CashFlowScreen() {
   const { state: s } = useApp();
+  const { T }        = useTheme();
 
-  // ── SINGLE SOURCE: same derived() as HomeScreen ─────────────
-  const d = useMemo(() => derived(s), [s]);
+  const d = useMemo(() => {
+    try { return deriveState(s); }
+    catch { return { totalIncome:0,salary:0,earnedSalary:0,otherIncome:0,sipTotal:0,debtEmi:0,debtTotal:0,manualTotal:0,balance:0,present:0,workDays:26,perDay:0,lostSalary:0,netWorth:0,totalAssets:0 }; }
+  }, [s]);
 
-  // Flow nodes — all values from d (derived), zero hardcoding
-  const flows = [
-    {
-      label: 'Salary (Earned)',
-      amount: d.earnedSalary,
-      type: 'in',
-      color: C.green,
-      icon: '💰',
-      sub: `${d.present}/${s.workingDays} days × ${fmt(d.perDay)}/day`,
-    },
-    ...s.incomes.slice(1).filter(inc => inc.amount > 0).map(inc => ({
-      label: inc.label,
-      amount: inc.amount,
-      type: 'in',
-      color: C.teal,
-      icon: '💼',
-      sub: inc.recurring ? 'Recurring income' : 'Variable income',
-    })),
-    {
-      label: 'EMI Payments',
-      amount: d.debtEmi,
-      type: 'out',
-      color: C.red,
-      icon: '🏦',
-      sub: `${s.debts.length} active loan${s.debts.length !== 1 ? 's' : ''}`,
-    },
-    {
-      label: 'SIP Investments',
-      amount: d.sipTotal,
-      type: 'out',
-      color: C.purple,
-      icon: '📈',
-      sub: `${s.sips.length} fund${s.sips.length !== 1 ? 's' : ''}`,
-    },
-    {
-      label: 'Manual Expenses',
-      amount: d.manualTotal,
-      type: 'out',
-      color: C.amber,
-      icon: '🛒',
-      sub: `${s.manualExpenses.length} categories`,
-    },
-    {
-      label: 'Net Balance',
-      amount: d.balance,
-      type: 'net',
-      color: d.balance > 0 ? C.green : C.red,
-      icon: '💵',
-      sub: d.balance > 0 ? 'Available to save / spend' : 'Over budget!',
-    },
-  ];
+  const totalOut = d.manualTotal + d.debtEmi + d.sipTotal;
 
-  const totalOut = d.debtEmi + d.sipTotal + d.manualTotal;
+  // Build flow nodes from actual state
+  const flows = useMemo(() => {
+    const nodes = [];
+    if (d.earnedSalary > 0)
+      nodes.push({ label:'Salary (Earned)', amount:d.earnedSalary, type:'in', color:'#22C55E', icon:'💰', sub:`${d.present}/${d.workDays} days × ${fmt(d.perDay)}/day` });
+    (s.incomes || []).slice(1).filter(inc => safeNum(inc?.amount) > 0).forEach(inc =>
+      nodes.push({ label:inc.label, amount:safeNum(inc.amount), type:'in', color:'#14B8A6', icon:'💼', sub: inc.recurring ? 'Recurring' : 'Variable' })
+    );
+    if (d.manualTotal > 0)
+      nodes.push({ label:'Manual Expenses', amount:d.manualTotal, type:'out', color:'#F59E0B', icon:'🛒', sub:`${(s.manualExpenses||[]).length} categories` });
+    if (d.debtEmi > 0)
+      nodes.push({ label:'EMI Payments', amount:d.debtEmi, type:'out', color:'#EF4444', icon:'🏦', sub:`${(s.debts||[]).length} loan${(s.debts||[]).length!==1?'s':''}` });
+    if (d.sipTotal > 0)
+      nodes.push({ label:'SIP Investments', amount:d.sipTotal, type:'out', color:'#A78BFA', icon:'📈', sub:`${(s.sips||[]).length} fund${(s.sips||[]).length!==1?'s':''}` });
+    nodes.push({ label:'Net Balance', amount:d.balance, type:'net', color:d.balance>=0?'#22C55E':'#EF4444', icon:'💵', sub:d.balance>=0?'Available to save / spend':'Over budget!' });
+    return nodes;
+  }, [s, d]);
+
+  if (d.totalIncome === 0) {
+    return (
+      <View style={{ flex:1, backgroundColor:T.bg }}>
+        <View style={{ paddingTop:56, paddingHorizontal:SP.md, paddingBottom:SP.md }}>
+          <Text style={{ fontSize:27, fontWeight:'800', color:T.t1, letterSpacing:-0.5 }}>Cash Flow</Text>
+        </View>
+        <View style={{ paddingHorizontal:SP.md }}>
+          <Card><Empty icon="🌊" title="No income data" sub="Add your salary in the Money tab to see your cash flow." /></Card>
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={st.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-
-      <View style={st.header}>
-        <Text style={st.pageTitle}>Cash Flow</Text>
-        <Text style={st.pageSub}>{MONTHS_FULL[s.currentMonth]} {s.currentYear}</Text>
+    <ScrollView style={{ flex:1, backgroundColor:T.bg }} showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom:100 }}>
+      <View style={{ paddingTop:56, paddingHorizontal:SP.md, paddingBottom:SP.md }}>
+        <Text style={{ fontSize:27, fontWeight:'800', color:T.t1, letterSpacing:-0.5 }}>Cash Flow</Text>
+        <Text style={{ fontSize:13, color:T.t3, marginTop:2 }}>{MONTHS_FULL[s.currentMonth||0]} {s.currentYear||new Date().getFullYear()}</Text>
       </View>
 
-      {/* ── SUMMARY STRIP ── */}
-      <Animated.View entering={FadeInDown.duration(400).delay(50)}>
-        <View style={[st.row2, st.mx]}>
-          {[
-            { label:'Total In',    val: fmt(d.totalIncome), color: C.green  },
-            { label:'Total Out',   val: fmt(totalOut),      color: C.red    },
-            { label:'Net Balance', val: fmt(d.balance),     color: d.balance > 0 ? C.green : C.red },
-          ].map((c, i) => (
-            <View key={i} style={[st.summCard, { borderColor: c.color+'25' }]}>
-              <Text style={st.summLabel}>{c.label}</Text>
-              <Text style={[st.summVal, { color: c.color }]}>{c.val}</Text>
-            </View>
-          ))}
-        </View>
-      </Animated.View>
-
-      {/* ── FLOW DIAGRAM ── */}
-      <Animated.View entering={FadeInDown.duration(400).delay(100)} style={st.mx}>
-        <Card style={{ marginBottom: 12 }}>
-          <SH title="Money Flow" />
-
-          {/* Overall progress bar — out vs in */}
-          <View style={{ marginBottom: 16 }}>
-            <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:5 }}>
-              <Text style={{ fontSize:12, color:C.t3 }}>Committed {pct(totalOut, d.totalIncome)}% of income</Text>
-              <Text style={{ fontSize:12, fontWeight:'700', color: pct(totalOut,d.totalIncome)>85 ? C.red : C.green }}>
-                {pct(d.balance, d.totalIncome)}% free
-              </Text>
-            </View>
-            <Bar value={totalOut} total={d.totalIncome} color={C.red} h={6} />
+      {/* SUMMARY STRIP */}
+      <View style={{ flexDirection:'row', gap:8, marginHorizontal:SP.md, marginBottom:12 }}>
+        {[
+          { label:'Total In',    val:fmt(d.totalIncome), color:'#22C55E' },
+          { label:'Total Out',   val:fmt(totalOut),       color:'#EF4444' },
+          { label:'Net Balance', val:fmt(d.balance),      color:d.balance>=0?'#22C55E':'#EF4444' },
+        ].map((c,i) => (
+          <View key={i} style={{ flex:1, backgroundColor:T.l2, borderRadius:R.md+2, padding:SP.sm+4, borderWidth:1, borderColor:T.border, alignItems:'center' }}>
+            <Text style={{ fontSize:14, fontWeight:'800', color:c.color }}>{c.val}</Text>
+            <Text style={{ fontSize:10, color:T.t3, marginTop:2, textAlign:'center' }}>{c.label}</Text>
           </View>
+        ))}
+      </View>
 
+      {/* OVERALL PROGRESS */}
+      <View style={{ paddingHorizontal:SP.md, marginBottom:12 }}>
+        <Card>
+          <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:6 }}>
+            <Text style={{ fontSize:12, color:T.t3 }}>Income committed: {safePct(totalOut, d.totalIncome)}%</Text>
+            <Text style={{ fontSize:12, fontWeight:'700', color:d.balance>=0?'#22C55E':'#EF4444' }}>{safePct(d.balance, d.totalIncome)}% free</Text>
+          </View>
+          <Bar value={totalOut} total={Math.max(d.totalIncome,1)} color={safePct(totalOut,d.totalIncome)>85?'#EF4444':'#4F8CFF'} h={10} />
+        </Card>
+      </View>
+
+      {/* FLOW DIAGRAM */}
+      <View style={{ paddingHorizontal:SP.md, marginBottom:12 }}>
+        <Card>
+          <SH title="Money Flow" />
           {flows.map((f, i) => (
             <View key={i}>
-              <View style={st.flowRow}>
-                <View style={[st.flowIcon, { backgroundColor: f.color+'20' }]}>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:12, paddingVertical:12 }}>
+                <View style={{ width:40, height:40, borderRadius:12, backgroundColor:f.color+'20', alignItems:'center', justifyContent:'center' }}>
                   <Text style={{ fontSize:18 }}>{f.icon}</Text>
                 </View>
                 <View style={{ flex:1 }}>
-                  <Text style={[st.flowLabel, f.type==='net' && { color: f.color, fontWeight:'800' }]}>{f.label}</Text>
-                  <Text style={st.flowSub}>{f.sub}</Text>
+                  <Text style={[{ fontWeight:'600', fontSize:13 }, f.type==='net' && { fontWeight:'800' }, { color:f.type==='net'?f.color:T.t1 }]}>{f.label}</Text>
+                  <Text style={{ fontSize:11, color:T.t3, marginTop:2 }}>{f.sub}</Text>
                   {f.type !== 'net' && (
-                    <View style={{ marginTop:5 }}>
-                      <Bar value={f.amount} total={d.totalIncome} color={f.color} h={3} />
+                    <View style={{ marginTop:6 }}>
+                      <Bar value={f.amount} total={Math.max(d.totalIncome,1)} color={f.color} h={3} />
                     </View>
                   )}
                 </View>
                 <View style={{ alignItems:'flex-end' }}>
-                  <Text style={[st.flowAmt, { color: f.type==='net' ? f.color : f.type==='in' ? C.green : C.red }]}>
-                    {f.type==='net' ? '' : f.type==='in' ? '+ ' : '− '}{fmt(f.amount)}
+                  <Text style={{ fontSize:15, fontWeight:'800', color:f.type==='net'?f.color:f.type==='in'?'#22C55E':'#EF4444' }}>
+                    {f.type==='net'?'':(f.type==='in'?'+ ':'− ')}{fmt(f.amount)}
                   </Text>
-                  {f.type !== 'net' && (
-                    <Text style={st.flowPct}>{pct(f.amount, d.totalIncome)}%</Text>
-                  )}
+                  {f.type!=='net' && <Text style={{ fontSize:10, color:T.t3, marginTop:2 }}>{safePct(f.amount, d.totalIncome)}%</Text>}
                 </View>
               </View>
-
-              {/* Connector line between flows */}
-              {i < flows.length - 2 && (
-                <View style={{ paddingLeft: 20, paddingVertical: 1 }}>
-                  <View style={{ width:2, height:12, marginLeft:19, backgroundColor: f.color+'35' }} />
-                </View>
-              )}
+              {i < flows.length - 2 && <View style={{ paddingLeft:20, paddingVertical:1 }}><View style={{ width:2, height:10, marginLeft:19, backgroundColor:f.color+'35' }} /></View>}
             </View>
           ))}
         </Card>
-      </Animated.View>
+      </View>
 
-      {/* ── EXPENSE BREAKDOWN ── */}
-      <Animated.View entering={FadeInDown.duration(400).delay(150)} style={st.mx}>
-        <Card style={{ marginBottom: 12 }}>
-          <SH title="Expense Breakdown" />
-          {s.manualExpenses.map((e, i) => (
-            <View key={i} style={[st.expRow, i < s.manualExpenses.length-1 && st.expBorder]}>
-              <View style={{ flexDirection:'row', alignItems:'center', gap:10, flex:1 }}>
-                <Text style={{ fontSize:18 }}>{e.icon}</Text>
-                <View style={{ flex:1 }}>
-                  <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:5 }}>
-                    <Text style={st.expCat}>{e.cat}</Text>
-                    {e.recurring && <Chip label="Auto" color={C.teal} sm />}
+      {/* EXPENSE BREAKDOWN */}
+      {(s.manualExpenses||[]).length > 0 && (
+        <View style={{ paddingHorizontal:SP.md, marginBottom:12 }}>
+          <Card>
+            <SH title="Expense Breakdown" />
+            {(s.manualExpenses||[]).map((e, i) => (
+              <View key={e?.id||i} style={[{ paddingVertical:12 }, i<(s.manualExpenses||[]).length-1 && { borderBottomWidth:1, borderBottomColor:T.border }]}>
+                <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                  <View style={{ flexDirection:'row', alignItems:'center', gap:9 }}>
+                    <Text style={{ fontSize:18 }}>{e?.icon||'💳'}</Text>
+                    <View>
+                      <Text style={{ fontWeight:'600', fontSize:13, color:T.t1 }}>{e?.cat||'Expense'}</Text>
+                      {e?.recurring && <Chip label="Auto" color="#14B8A6" sm />}
+                    </View>
                   </View>
-                  <Bar value={e.amount} total={d.totalIncome} color={e.color} h={3} />
-                </View>
-              </View>
-              <View style={{ alignItems:'flex-end' }}>
-                <Text style={[st.expAmt, { color: e.color }]}>{fmt(e.amount)}</Text>
-                <Text style={st.expPct}>{pct(e.amount, d.totalIncome)}%</Text>
-              </View>
-            </View>
-          ))}
-        </Card>
-      </Animated.View>
-
-      {/* ── DEBT BREAKDOWN ── */}
-      {s.debts.length > 0 && (
-        <Animated.View entering={FadeInDown.duration(400).delay(200)} style={st.mx}>
-          <Card style={{ marginBottom: 12 }}>
-            <SH title="EMI Breakdown" />
-            {s.debts.map((debt, i) => (
-              <View key={i} style={[st.expRow, i < s.debts.length-1 && st.expBorder]}>
-                <View style={{ flex:1 }}>
-                  <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:5 }}>
-                    <Text style={st.expCat}>{debt.name}</Text>
-                    <Chip label={`${debt.rate}% p.a.`} color={debt.rate >= 24 ? C.red : C.amber} sm />
+                  <View style={{ alignItems:'flex-end' }}>
+                    <Text style={{ fontSize:14, fontWeight:'700', color:e?.color||T.t1 }}>{fmt(e?.amount||0)}</Text>
+                    <Text style={{ fontSize:10, color:T.t3 }}>{safePct(e?.amount, d.totalIncome)}%</Text>
                   </View>
-                  <Bar value={debt.remaining} total={debt.amount} color={C.red} h={3} />
-                  <Text style={{ fontSize:10, color:C.t3, marginTop:4 }}>
-                    {pct(debt.amount-debt.remaining, debt.amount)}% cleared · EMI {fmt(debt.emi)}/mo
-                  </Text>
                 </View>
-                <View style={{ alignItems:'flex-end', marginLeft:12 }}>
-                  <Text style={[st.expAmt, { color: C.red }]}>{fmt(debt.emi)}</Text>
-                  <Text style={st.expPct}>/month</Text>
-                </View>
+                <Bar value={e?.amount||0} total={Math.max(d.totalIncome,1)} color={e?.color||'#4F8CFF'} h={4} />
               </View>
             ))}
           </Card>
-        </Animated.View>
+        </View>
       )}
 
-      {/* ── SIP BREAKDOWN ── */}
-      {s.sips.length > 0 && (
-        <Animated.View entering={FadeInDown.duration(400).delay(250)} style={st.mx}>
-          <Card style={{ marginBottom: 12 }}>
-            <SH title="SIP Breakdown" />
-            {s.sips.map((sip, i) => (
-              <View key={i} style={[st.expRow, i < s.sips.length-1 && st.expBorder]}>
-                <View style={{ flex:1 }}>
-                  <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:5 }}>
-                    <Text style={st.expCat}>{sip.name}</Text>
-                    <Chip label={`${sip.returns}% p.a.`} color={C.green} sm />
-                  </View>
-                  <Bar value={sip.amount} total={d.sipTotal} color={C.purple} h={3} />
-                </View>
-                <View style={{ alignItems:'flex-end', marginLeft:12 }}>
-                  <Text style={[st.expAmt, { color: C.purple }]}>{fmt(sip.amount)}</Text>
-                  <Text style={st.expPct}>/month</Text>
-                </View>
-              </View>
-            ))}
-          </Card>
-        </Animated.View>
-      )}
-
-      {/* ── INCOME SOURCES ── */}
-      <Animated.View entering={FadeInDown.duration(400).delay(280)} style={st.mx}>
+      {/* MONTHLY SUMMARY */}
+      <View style={{ paddingHorizontal:SP.md }}>
         <Card>
-          <SH title="Income Sources" />
-          {s.incomes.map((inc, i) => (
-            <View key={i} style={[st.expRow, i < s.incomes.length-1 && st.expBorder]}>
-              <View style={{ flexDirection:'row', alignItems:'center', gap:10, flex:1 }}>
-                <Text style={{ fontSize:18 }}>{i===0?'💰':'💼'}</Text>
-                <View>
-                  <Text style={st.expCat}>{inc.label}</Text>
-                  <Chip label={inc.recurring ? 'Recurring' : 'Variable'} color={inc.recurring?C.green:C.amber} sm />
-                </View>
+          <SH title="Monthly Summary" />
+          <View style={{ flexDirection:'row', flexWrap:'wrap', gap:10, marginBottom:14 }}>
+            {[
+              { label:'Salary (earned)',  val:fmt(d.earnedSalary),  color:'#22C55E' },
+              { label:'Other income',    val:fmt(d.otherIncome),   color:'#14B8A6' },
+              { label:'SIP invested',    val:fmt(d.sipTotal),      color:'#A78BFA' },
+              { label:'EMI paid',        val:fmt(d.debtEmi),       color:'#EF4444' },
+              { label:'Manual expenses', val:fmt(d.manualTotal),   color:'#F59E0B' },
+              { label:'Net balance',     val:fmt(d.balance),       color:d.balance>=0?'#22C55E':'#EF4444' },
+            ].map((c,i) => (
+              <View key={i} style={{ width:'47%', backgroundColor:T.l2, borderRadius:12, padding:12, borderWidth:1, borderColor:T.border }}>
+                <Text style={{ fontSize:11, color:T.t3, marginBottom:4 }}>{c.label}</Text>
+                <Text style={{ fontSize:16, fontWeight:'800', color:c.color }}>{c.val}</Text>
               </View>
-              <Text style={[st.expAmt, { color: C.green }]}>+{fmt(i===0 ? d.earnedSalary : inc.amount)}</Text>
-            </View>
-          ))}
-          <View style={st.totalRow}>
-            <Text style={st.totalLabel}>Total Income (This Month)</Text>
-            {/* Same totalIncome as HomeScreen hero card */}
-            <Text style={[st.totalVal, { color: C.green }]}>{fmt(d.totalIncome)}</Text>
+            ))}
           </View>
+          <Bar value={totalOut} total={Math.max(d.totalIncome,1)} color='#EF4444' h={6} />
+          <Text style={{ fontSize:11, color:T.t3, marginTop:6 }}>{safePct(totalOut,d.totalIncome)}% of income committed this month</Text>
         </Card>
-      </Animated.View>
-
+      </View>
     </ScrollView>
   );
 }
-
-const st = StyleSheet.create({
-  container:  { flex:1, backgroundColor: C.bg },
-  mx:         { marginHorizontal: S.md },
-  header:     { paddingTop:56, paddingHorizontal:S.md, paddingBottom:S.md },
-  pageTitle:  { fontSize:27, fontWeight:'800', color:C.t1, letterSpacing:-0.5 },
-  pageSub:    { fontSize:13, color:C.t3, marginTop:2 },
-  row2:       { flexDirection:'row', gap:8, marginBottom:12 },
-  summCard:   { flex:1, backgroundColor:C.l2, borderRadius:R.md+2, padding:12, borderWidth:1 },
-  summLabel:  { fontSize:11, color:C.t3, marginBottom:4 },
-  summVal:    { fontSize:17, fontWeight:'800' },
-  flowRow:    { flexDirection:'row', alignItems:'center', gap:12, paddingVertical:12 },
-  flowIcon:   { width:40, height:40, borderRadius:12, alignItems:'center', justifyContent:'center' },
-  flowLabel:  { fontWeight:'600', fontSize:13, color:C.t1 },
-  flowSub:    { fontSize:11, color:C.t3, marginTop:2 },
-  flowAmt:    { fontSize:15, fontWeight:'800' },
-  flowPct:    { fontSize:10, color:C.t3, marginTop:2 },
-  expRow:     { paddingVertical:12, flexDirection:'row', alignItems:'center' },
-  expBorder:  { borderBottomWidth:1, borderBottomColor:C.border },
-  expCat:     { fontWeight:'600', fontSize:13, color:C.t1, marginBottom:2 },
-  expAmt:     { fontSize:15, fontWeight:'800' },
-  expPct:     { fontSize:10, color:C.t3, marginTop:2 },
-  totalRow:   { marginTop:12, paddingTop:12, borderTopWidth:1, borderTopColor:C.border, flexDirection:'row', justifyContent:'space-between', alignItems:'center' },
-  totalLabel: { fontSize:14, fontWeight:'700', color:C.t1 },
-  totalVal:   { fontSize:19, fontWeight:'800' },
-});
