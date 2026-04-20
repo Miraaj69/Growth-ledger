@@ -335,13 +335,15 @@ export default function SimulatorScreen() {
       </View>
 
       {/* TAB BAR */}
-      <View style={[st.tabBar, { marginHorizontal: SP.md, backgroundColor: T.l1, borderColor: T.border }]}>
+      <View style={{ flexDirection:'row', marginHorizontal:SP.md, backgroundColor:T.l2, borderRadius:16, padding:5, gap:4, marginBottom:4, borderWidth:1, borderColor:T.border }}>
         {TABS.map(({ key, label }) => {
           const on = tab === key;
           return (
-            <Pressable key={key} onPress={() => setTab(key)}
-              style={[st.tabBtn, on && { backgroundColor: '#4F8CFF' }]}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: on ? '#fff' : T.t3 }}>{label}</Text>
+            <Pressable key={key} onPress={() => setTab(key)} style={{ flex:1 }}>
+              <View style={[{ paddingVertical:10, borderRadius:12, alignItems:'center', justifyContent:'center' },
+                on && { backgroundColor:'#4F8CFF', shadowColor:'#4F8CFF', shadowOpacity:0.45, shadowRadius:10, shadowOffset:{width:0,height:3}, elevation:6 }]}>
+                <Text style={{ fontSize:11, fontWeight: on?'700':'500', color: on?'#fff':T.t3, letterSpacing:0.2 }}>{label}</Text>
+              </View>
             </Pressable>
           );
         })}

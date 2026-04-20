@@ -380,9 +380,11 @@ export default function MoneyScreen() {
           {TABS.map(([k,l]) => {
             const on = tab === k;
             return (
-              <Pressable key={k} onPress={()=>setTab(k)}
-                style={{ flex:1, paddingVertical:9, borderRadius:11, alignItems:'center', backgroundColor:on?'#4F8CFF':'transparent' }}>
-                <Text style={{ fontSize:11, fontWeight:'600', color:on?'#fff':T.t3 }}>{l}</Text>
+              <Pressable key={k} onPress={()=>setTab(k)} style={{ flex:1 }}>
+                <View style={[{ paddingVertical:10, borderRadius:12, alignItems:'center', justifyContent:'center' },
+                  on && { backgroundColor:'#4F8CFF', shadowColor:'#4F8CFF', shadowOpacity:0.45, shadowRadius:10, shadowOffset:{width:0,height:3}, elevation:6 }]}>
+                  <Text style={{ fontSize:11, fontWeight:on?'700':'500', color:on?'#fff':T.t3, letterSpacing:0.2 }}>{l}</Text>
+                </View>
               </Pressable>
             );
           })}
