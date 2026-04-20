@@ -1,5 +1,4 @@
-// App.js — Updated to include CalculatorsScreen
-// Drop-in replacement for your existing App.js
+// App.js
 import React, { useCallback } from 'react';
 import { View, StatusBar, Platform, Text, Pressable, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -13,32 +12,30 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AppProvider }             from './AppContext';
+import { AppProvider }          from './AppContext';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
-import HomeScreen          from './HomeScreen';
-import MoneyScreen         from './MoneyScreen';
-import InsightsScreen      from './InsightsScreen';
-import ProfileScreen       from './ProfileScreen';
-import TaxScreen           from './TaxScreen';
-import SimulatorScreen     from './SimulatorScreen';
-import DecisionScreen      from './DecisionScreen';
-import CashFlowScreen      from './CashFlowScreen';
-import GrowthScreen        from './GrowthScreen';
-import CalculatorsScreen   from './CalculatorsScreen'; // ← NEW
+import HomeScreen       from './HomeScreen';
+import MoneyScreen      from './MoneyScreen';
+import InsightsScreen   from './InsightsScreen';
+import ProfileScreen    from './ProfileScreen';
+import TaxScreen        from './TaxScreen';
+import SimulatorScreen  from './SimulatorScreen';
+import DecisionScreen   from './DecisionScreen';
+import CashFlowScreen   from './CashFlowScreen';
+import GrowthScreen     from './GrowthScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// ── 5 tabs: replace Insights with Calculators, keep Growth ──
 const TABS = [
-  { name: 'Home',        icon: '🏠', label: 'Home'    },
-  { name: 'Money',       icon: '💵', label: 'Money'   },
-  { name: 'Growth',      icon: '🚀', label: 'Growth'  },
-  { name: 'Calculators', icon: '🧮', label: 'Calc'    },
-  { name: 'Profile',     icon: '👤', label: 'Profile' },
+  { name: 'Home',     icon: '🏠', label: 'Home'    },
+  { name: 'Money',    icon: '💵', label: 'Money'   },
+  { name: 'Growth',   icon: '🚀', label: 'Growth'  },
+  { name: 'Insights', icon: '📊', label: 'Insights'},
+  { name: 'Profile',  icon: '👤', label: 'Profile' },
 ];
 
 function TabBar({ state, navigation }) {
@@ -69,6 +66,7 @@ function TabBar({ state, navigation }) {
   );
 }
 
+// Home stack — stack navigator for drill-in screens
 function HomeStack() {
   const { T } = useTheme();
   const headerOpts = {
@@ -84,7 +82,6 @@ function HomeStack() {
       <Stack.Screen name="Simulator"  component={SimulatorScreen} options={{ title: '📊 Simulator'       }} />
       <Stack.Screen name="Decisions"  component={DecisionScreen}  options={{ title: '🧠 AI Decisions'    }} />
       <Stack.Screen name="CashFlow"   component={CashFlowScreen}  options={{ title: '🌊 Cash Flow'       }} />
-      <Stack.Screen name="Insights"   component={InsightsScreen}  options={{ title: '📊 Insights'        }} />
     </Stack.Navigator>
   );
 }
@@ -92,11 +89,11 @@ function HomeStack() {
 function MainTabs() {
   return (
     <Tab.Navigator tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="Home"        component={HomeStack}          />
-      <Tab.Screen name="Money"       component={MoneyScreen}        />
-      <Tab.Screen name="Growth"      component={GrowthScreen}       />
-      <Tab.Screen name="Calculators" component={CalculatorsScreen}  />
-      <Tab.Screen name="Profile"     component={ProfileScreen}      />
+      <Tab.Screen name="Home"     component={HomeStack}      />
+      <Tab.Screen name="Money"    component={MoneyScreen}    />
+      <Tab.Screen name="Growth"   component={GrowthScreen}   />
+      <Tab.Screen name="Insights" component={InsightsScreen} />
+      <Tab.Screen name="Profile"  component={ProfileScreen}  />
     </Tab.Navigator>
   );
 }
