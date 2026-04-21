@@ -13,8 +13,8 @@
       "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#080D1A" },
       "package": "com.ajaythakur69.growthledger"
     },
-    "extra": { "eas": { "projectId": "c8439f8f-8be5-42c9-87a7-81ce8dc6c4fa" } },
-    "owner": "johnysins",
+    "extra": { "eas": { "projectId": "6b1fa9b6-c727-446e-bc87-ad247c2f32dc" } },
+    "owner": "nidhi2701",
     "plugins": [
       "expo-font",
       ["expo-splash-screen", { "backgroundColor": "#080D1A", "image": "./assets/splash.png", "resizeMode": "contain" }]
