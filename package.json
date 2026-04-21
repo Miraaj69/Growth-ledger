@@ -11,6 +11,8 @@
     "expo-font": "~13.0.4",
     "expo-haptics": "~14.0.1",
     "expo-notifications": "~0.29.14",
+    "expo-document-picker": "~13.0.3",
+    "expo-file-system": "~18.0.12",
     "@expo-google-fonts/syne": "^0.2.3",
     "@expo-google-fonts/dm-sans": "^0.2.3",
     "react": "18.3.1",

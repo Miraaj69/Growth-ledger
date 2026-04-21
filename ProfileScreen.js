@@ -6,8 +6,10 @@ import { useApp } from './AppContext';
 import { useTheme } from './ThemeContext';
 import { fmt, safePct, calcScore } from './helpers';
 import { SPACING as SP, RADIUS as R } from './theme';
-import { Card, GCard, Chip, Bar, SH, Toggle, AlertRow } from './UI';
+import { Card, GCard, Chip, Bar, SH, Toggle, AlertRow, Btn } from './UI';
 import { clearState } from './storage';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { triggerSmartNotifications, getNotifSuggestions } from './notifications';
 
 export default function ProfileScreen() {
@@ -50,6 +52,37 @@ export default function ProfileScreen() {
   };
 
   const themeLabel = mode === 'dark' ? '🌙 Dark' : mode === 'amoled' ? '⬛ AMOLED' : '☀️ Light';
+
+  const handleHolidayImport = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/json', 'text/plain', '*/*'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const file = result.assets?.[0];
+      if (!file?.uri) return;
+      const raw = await FileSystem.readAsStringAsync(file.uri);
+      let dates = [];
+      // Try JSON parse first
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) dates = parsed.filter(d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d));
+        else if (parsed.holidays && Array.isArray(parsed.holidays)) dates = parsed.holidays;
+        else { Alert.alert('Invalid Format', 'JSON must be an array of dates: ["2026-01-26", ...]'); return; }
+      } catch {
+        // Try CSV / line-separated
+        dates = raw.split(/[\n,]/).map(d => d.trim().replace(/['"]/g, '')).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+      }
+      if (dates.length === 0) { Alert.alert('No valid dates found', 'Use format: YYYY-MM-DD'); return; }
+      dispatch({ type: 'SET_HOLIDAYS', holidays: dates });
+      Alert.alert('✅ Holidays Imported', \`\${dates.length} holiday dates loaded.\n\nThey will show in red on the attendance calendar.\`);
+    } catch (e) {
+      Alert.alert('Import Failed', e.message || 'Could not read file');
+    }
+  };
+
+  const holidayCount = (s.holidays || []).length;
 
   return (
     <ScrollView style={{ flex:1, backgroundColor:T.bg }} showsVerticalScrollIndicator={false}
@@ -169,6 +202,42 @@ export default function ProfileScreen() {
               <Toggle value={(s.notifs||{})[n.key]!==false} onChange={()=>set({notifs:{...(s.notifs||{}),[n.key]:!(s.notifs||{})[n.key]}})} />
             </View>
           ))}
+        </Card>
+      </View>
+
+      {/* HOLIDAYS */}
+      <View style={{ marginHorizontal:SP.md }}>
+        <Card style={{ marginBottom:12 }}>
+          <SH title="📅 Public Holidays" right={holidayCount > 0 ? `${holidayCount} loaded` : undefined} rightColor="#EF4444" />
+          <Text style={{ fontSize:12, color:T.t3, lineHeight:18, marginBottom:12 }}>
+            Import a JSON or CSV file with holiday dates (YYYY-MM-DD).
+            They appear in red on your attendance calendar.
+          </Text>
+          {holidayCount > 0 && (
+            <View style={{ backgroundColor:'#EF444412', borderRadius:11, padding:10, borderWidth:1, borderColor:'#EF444428', marginBottom:10 }}>
+              <Text style={{ fontSize:12, color:'#EF4444', fontWeight:'600' }}>
+                {holidayCount} holidays loaded — shown in red on calendar
+              </Text>
+              <Text style={{ fontSize:10, color:T.t3, marginTop:3 }}>
+                {(s.holidays||[]).slice(0,3).join(', ')}{holidayCount > 3 ? ` + ${holidayCount-3} more` : ''}
+              </Text>
+            </View>
+          )}
+          <View style={{ flexDirection:'row', gap:10 }}>
+            <View style={{ flex:1 }}>
+              <Btn label="📂 Import Holidays" onPress={handleHolidayImport} />
+            </View>
+            {holidayCount > 0 && (
+              <Pressable onPress={() => { Alert.alert('Clear Holidays?', 'Remove all imported holidays?', [{text:'Cancel'},{text:'Clear',style:'destructive',onPress:()=>dispatch({type:'CLEAR_HOLIDAYS'})}]); }}
+                style={{ paddingHorizontal:14, paddingVertical:12, borderRadius:12, backgroundColor:'#EF444415', borderWidth:1, borderColor:'#EF444430', justifyContent:'center' }}>
+                <Text style={{ fontSize:12, color:'#EF4444', fontWeight:'600' }}>🗑️ Clear</Text>
+              </Pressable>
+            )}
+          </View>
+          <Text style={{ fontSize:11, color:T.t3, marginTop:10, lineHeight:17 }}>
+            💡 Tip: Create a JSON file like:{' '}
+            <Text style={{ color:T.t2, fontFamily:'monospace' }}>["2026-01-26","2026-08-15"]</Text>
+          </Text>
         </Card>
       </View>
 

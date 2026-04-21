@@ -61,13 +61,28 @@ function ChartToggle({ type, onChange }) {
   );
 }
 
+const fmtAxis = (v) => {
+  const n = Number(v);
+  if (n >= 10000000) return `₹${(n/10000000).toFixed(1)}Cr`;
+  if (n >= 100000)   return `₹${(n/100000).toFixed(1)}L`;
+  if (n >= 1000)     return `₹${(n/1000).toFixed(0)}K`;
+  if (n > 0)         return `₹${n}`;
+  return '₹0';
+};
+
 const mkCfg = (T, hex = '#4F8CFF') => ({
-  backgroundGradientFrom:'#111827', backgroundGradientTo:'#111827',
-  backgroundGradientFromOpacity:0, backgroundGradientToOpacity:0,
-  color:(o=1)=>`${hex}${Math.round(o*255).toString(16).padStart(2,'0')}`,
-  labelColor:()=>'#94A3B8', strokeWidth:2.5, barPercentage:0.65, decimalPlaces:0,
-  propsForDots:{ r:'5', strokeWidth:'2', stroke:hex },
-  propsForBackgroundLines:{ stroke:'rgba(255,255,255,0.05)', strokeWidth:1 },
+  backgroundGradientFrom:       T.l1,
+  backgroundGradientTo:         T.l1,
+  backgroundGradientFromOpacity:0,
+  backgroundGradientToOpacity:  0,
+  color:       (o = 1) => `${hex}${Math.round(o*255).toString(16).padStart(2,'0')}`,
+  labelColor:  ()      => '#94A3B8',
+  strokeWidth: 2.5,
+  barPercentage: 0.65,
+  decimalPlaces: 0,
+  propsForDots:            { r:'5', strokeWidth:'2', stroke:hex },
+  propsForBackgroundLines: { stroke:'rgba(255,255,255,0.06)', strokeWidth:1 },
+  propsForLabels:          { fontSize: 10, fontWeight: '600' },
 });
 
 const calcStepUp = (mo, yr, ret, su) => {
@@ -192,7 +207,7 @@ function SipTab() {
               <LineChart
                 data={{ labels:R.ll, datasets:[{data:R.lv,color:()=>'#4F8CFF',strokeWidth:2.5},{data:R.ip,color:()=>'#22C55E88',strokeWidth:1.5}], legend:['Corpus','Invested'] }}
                 width={CHART_W+8} height={200} chartConfig={mkCfg(T)} bezier style={{borderRadius:12}}
-                formatYLabel={v=>fmtShort(Number(v))} withInnerLines withOuterLines={false} withDots />
+                formatYLabel={fmtAxis} withInnerLines withOuterLines={false} withDots yLabelsOffset={4} />
             </View>
           )}
 
@@ -202,7 +217,7 @@ function SipTab() {
                 data={{ labels:R.ms.map(m=>m.l), datasets:[{data:R.ms.map(m=>m.c)}] }}
                 width={CHART_W+8} height={200}
                 chartConfig={{...mkCfg(T),color:(o=1)=>`rgba(79,140,255,${o})`}}
-                style={{borderRadius:12}} formatYLabel={v=>fmtShort(Number(v))} showValuesOnTopOfBars fromZero />
+                style={{borderRadius:12}} formatYLabel={fmtAxis} showValuesOnTopOfBars fromZero />
             </View>
             <View style={{ marginTop:12 }}>
               {R.ms.map((m,i)=>(
@@ -309,7 +324,7 @@ function SalaryTab() {
               data={{ labels:R.labels, datasets:[{data:R.values,strokeWidth:2.5}] }}
               width={CHART_W+8} height={190}
               chartConfig={{...mkCfg(T,'#22C55E'),color:(o=1)=>`rgba(34,197,94,${o})`}}
-              bezier style={{borderRadius:12}} formatYLabel={v=>fmtShort(Number(v))} withInnerLines withOuterLines={false} />
+              bezier style={{borderRadius:12}} formatYLabel={fmtAxis} withInnerLines withOuterLines={false} yLabelsOffset={4} />
           </View>}
         </Card>
 
@@ -389,7 +404,7 @@ function RetirementTab() {
               data={{ labels:R.cl, datasets:[{data:R.cv,strokeWidth:2.5}] }}
               width={CHART_W+8} height={190}
               chartConfig={{...mkCfg(T,'#4F8CFF'),color:(o=1)=>`rgba(79,140,255,${o})`}}
-              bezier style={{borderRadius:12}} formatYLabel={v=>fmtShort(Number(v))} withInnerLines withOuterLines={false} />
+              bezier style={{borderRadius:12}} formatYLabel={fmtAxis} withInnerLines withOuterLines={false} yLabelsOffset={4} />
           </View>
         </Card>}
 

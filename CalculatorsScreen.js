@@ -16,7 +16,7 @@ import { SPACING as SP, RADIUS as RD, SHADOW as SH } from './theme';
 import { safeNum, fmtShort } from './helpers';
 
 const { width: SW } = Dimensions.get('window');
-const CHART_W = SW - SP.md * 2 - 32; // card padding
+const CHART_W = SW - SP.md * 2 - 40; // card padding + extra for Y-axis
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UTILS
@@ -191,7 +191,7 @@ const calcFIRE = (annualExp, savingsRatePct, returnPct, currentSavings) => {
 // Smooth SVG line chart with area fill + dual series
 function LineAreaChart({ data, keyMain, keySub, colorMain, colorSub, labelKey = 'year', T }) {
   if (!data?.length || data.length < 2) return null;
-  const H = 160, W = CHART_W, PAD_L = 42, PAD_B = 24, PAD_T = 12, PAD_R = 8;
+  const H = 175, W = CHART_W, PAD_L = 52, PAD_B = 28, PAD_T = 14, PAD_R = 10;
   const cW = W - PAD_L - PAD_R;
   const cH = H - PAD_T - PAD_B;
 
@@ -223,17 +223,19 @@ function LineAreaChart({ data, keyMain, keySub, colorMain, colorSub, labelKey = 
   const mainLine = smoothPath(mainVals);
   const subLine  = keySub ? smoothPath(subVals) : null;
 
-  // Y-axis labels
+  // Y-axis labels — 5 clean levels
   const yLabels = [0, 0.25, 0.5, 0.75, 1].map(f => ({
-    y: PAD_T + cH - f * cH,
-    label: fmtShort(maxVal * f),
+    y:     PAD_T + cH - f * cH,
+    label: f === 0 ? '₹0' : fmtShort(maxVal * f),
   }));
 
-  // X-axis labels (show max 5)
-  const step5 = Math.max(1, Math.floor(data.length / 4));
+  // X-axis labels — max 5 to avoid crowding
+  const maxXLabels = 5;
+  const xStep = Math.max(1, Math.ceil(data.length / maxXLabels));
   const xLabels = data
-    .filter((_, i) => i % step5 === 0 || i === data.length - 1)
-    .map((d, _, arr) => ({ x: toX(data.indexOf(d)), label: `Y${d[labelKey]}` }));
+    .map((d, i) => ({ d, i }))
+    .filter(({ i }) => i % xStep === 0 || i === data.length - 1)
+    .map(({ d, i }) => ({ x: toX(i), label: d[labelKey] != null ? `Y${d[labelKey]}` : `${i+1}` }));
 
   return (
     <Svg width={W} height={H}>
@@ -255,8 +257,8 @@ function LineAreaChart({ data, keyMain, keySub, colorMain, colorSub, labelKey = 
         <React.Fragment key={i}>
           <Line x1={PAD_L} y1={l.y} x2={W - PAD_R} y2={l.y}
             stroke={T.border} strokeWidth="0.5" strokeDasharray={i === 0 ? '' : '3,4'} />
-          <Text x={PAD_L - 4} y={l.y + 3.5} fontSize="8" fill={T.t3}
-            textAnchor="end" fontWeight="500">{l.label}</Text>
+          <Text x={PAD_L - 6} y={l.y + 4} fontSize="9" fill={T.t3}
+            textAnchor="end" fontWeight="600">{l.label}</Text>
         </React.Fragment>
       ))}
 
@@ -284,8 +286,8 @@ function LineAreaChart({ data, keyMain, keySub, colorMain, colorSub, labelKey = 
 
       {/* X labels */}
       {xLabels.map((l, i) => (
-        <Text key={i} x={l.x} y={H - 4} fontSize="9" fill={T.t3}
-          textAnchor="middle" fontWeight="500">{l.label}</Text>
+        <Text key={i} x={l.x} y={H - 6} fontSize="10" fill={T.t3}
+          textAnchor="middle" fontWeight="600">{l.label}</Text>
       ))}
     </Svg>
   );
@@ -294,7 +296,7 @@ function LineAreaChart({ data, keyMain, keySub, colorMain, colorSub, labelKey = 
 // Grouped bar chart: two series side by side (e.g. principal vs interest)
 function GroupedBarChart({ data, keyA, keyB, colorA, colorB, labelKey = 'year', T }) {
   if (!data?.length) return null;
-  const H = 140, W = CHART_W, PAD_L = 36, PAD_B = 20, PAD_T = 8, PAD_R = 8;
+  const H = 155, W = CHART_W, PAD_L = 52, PAD_B = 26, PAD_T = 10, PAD_R = 8;
   const cW = W - PAD_L - PAD_R;
   const cH = H - PAD_T - PAD_B;
   const n  = Math.min(data.length, 10); // cap bars
@@ -329,7 +331,7 @@ function GroupedBarChart({ data, keyA, keyB, colorA, colorB, labelKey = 'year', 
         stroke={T.border} strokeWidth="1" />
       {/* Y label top */}
       <Text x={PAD_L - 4} y={PAD_T + 4} fontSize="8" fill={T.t3}
-        textAnchor="end">{fmtShort(maxVal)}</Text>
+        textAnchor="end" fontWeight="600">{fmtShort(maxVal)}</Text>
     </Svg>
   );
 }

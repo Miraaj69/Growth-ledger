@@ -33,19 +33,20 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+// ── Same 5 tabs as original — Calculators restored ────────
 const TABS = [
-  { name:'Home',    icon:'🏠', label:'Home'    },
-  { name:'Money',   icon:'💵', label:'Money'   },
-  { name:'Goals',   icon:'🎯', label:'Goals'   },
-  { name:'Growth',  icon:'🚀', label:'Growth'  },
-  { name:'Profile', icon:'👤', label:'Profile' },
+  { name: 'Home',        icon: '🏠', label: 'Home'    },
+  { name: 'Money',       icon: '💵', label: 'Money'   },
+  { name: 'Growth',      icon: '🚀', label: 'Growth'  },
+  { name: 'Calculators', icon: '🧮', label: 'Calc'    },
+  { name: 'Profile',     icon: '👤', label: 'Profile' },
 ];
 
 function TabBar({ state, navigation }) {
   const { T } = useTheme();
   return (
     <View style={[st.bar, {
-      backgroundColor: T.mode==='amoled'?'#000':T.mode==='light'?'#fff':'rgba(8,13,26,0.97)',
+      backgroundColor: T.mode === 'amoled' ? '#000' : T.mode === 'light' ? '#fff' : 'rgba(8,13,26,0.98)',
       borderTopColor: T.border,
     }]}>
       {state.routes.map((route, i) => {
@@ -55,13 +56,19 @@ function TabBar({ state, navigation }) {
           <Pressable key={route.key}
             onPress={() => { if (!on) navigation.navigate(route.name); }}
             style={st.tabItem}
-            android_ripple={{ color:'rgba(79,140,255,0.2)', borderless:true }}>
-            <View style={[st.pill, on && { backgroundColor:'#4F8CFF22' }]}>
-              <Text style={{ fontSize:20, opacity:on?1:0.32 }}>{tab?.icon}</Text>
-            </View>
-            <Text style={{ fontSize:10, fontWeight:on?'700':'500', color:on?'#4F8CFF':T.t3, letterSpacing:0.2 }}>
-              {tab?.label}
-            </Text>
+            android_ripple={{ color: 'rgba(79,140,255,0.15)', borderless: true }}>
+            {/* Active = pill with blue glow; Inactive = just icon + label */}
+            {on ? (
+              <View style={st.activePill}>
+                <Text style={{ fontSize: 17 }}>{tab?.icon}</Text>
+                <Text style={st.activeLabel}>{tab?.label}</Text>
+              </View>
+            ) : (
+              <View style={st.inactiveItem}>
+                <Text style={{ fontSize: 20, opacity: 0.35 }}>{tab?.icon}</Text>
+                <Text style={[st.inactiveLabel, { color: T.t3 }]}>{tab?.label}</Text>
+              </View>
+            )}
           </Pressable>
         );
       })}
@@ -69,44 +76,50 @@ function TabBar({ state, navigation }) {
   );
 }
 
+// ── HomeStack — Dashboard + drill-in screens ──────────────
 function HomeStack() {
   const { T } = useTheme();
-  const hdr = { headerStyle:{ backgroundColor:T.bg }, headerTintColor:T.t1,
-    headerTitleStyle:{ fontWeight:'700', fontSize:17 }, headerShadowVisible:false };
+  const hdr = {
+    headerStyle:      { backgroundColor: T.bg },
+    headerTintColor:  T.t1,
+    headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+    headerShadowVisible: false,
+  };
   return (
     <Stack.Navigator screenOptions={hdr}>
-      <Stack.Screen name="Dashboard"   component={HomeScreen}        options={{ headerShown:false }} />
-      <Stack.Screen name="Tax"         component={TaxScreen}         options={{ title:'🧾 Tax Estimator' }} />
-      <Stack.Screen name="Simulator"   component={SimulatorScreen}   options={{ title:'📊 Simulator' }} />
-      <Stack.Screen name="Decisions"   component={DecisionScreen}    options={{ title:'🧠 AI Decisions' }} />
-      <Stack.Screen name="CashFlow"    component={CashFlowScreen}    options={{ title:'🌊 Cash Flow' }} />
-      <Stack.Screen name="Insights"    component={InsightsScreen}    options={{ title:'📊 Insights' }} />
-      <Stack.Screen name="Calculators" component={CalculatorsScreen} options={{ title:'🧮 Calculators' }} />
+      <Stack.Screen name="Dashboard"  component={HomeScreen}      options={{ headerShown: false }} />
+      <Stack.Screen name="Tax"        component={TaxScreen}       options={{ title: '🧾 Tax Estimator' }} />
+      <Stack.Screen name="Simulator"  component={SimulatorScreen} options={{ title: '📊 Simulator'     }} />
+      <Stack.Screen name="Decisions"  component={DecisionScreen}  options={{ title: '🧠 AI Decisions'  }} />
+      <Stack.Screen name="CashFlow"   component={CashFlowScreen}  options={{ title: '🌊 Cash Flow'     }} />
+      <Stack.Screen name="Insights"   component={InsightsScreen}  options={{ title: '📊 Insights'      }} />
+      <Stack.Screen name="Goals"      component={GoalsScreen}     options={{ title: '🎯 Goal Planner'  }} />
     </Stack.Navigator>
   );
 }
 
+// ── Main Tabs — same structure as original ─────────────────
 function MainTabs() {
   return (
-    <Tab.Navigator tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown:false }}>
-      <Tab.Screen name="Home"    component={HomeStack}    />
-      <Tab.Screen name="Money"   component={MoneyScreen}  />
-      <Tab.Screen name="Goals"   component={GoalsScreen}  />
-      <Tab.Screen name="Growth"  component={GrowthScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen}/>
+    <Tab.Navigator tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false }}>
+      <Tab.Screen name="Home"        component={HomeStack}         />
+      <Tab.Screen name="Money"       component={MoneyScreen}       />
+      <Tab.Screen name="Growth"      component={GrowthScreen}      />
+      <Tab.Screen name="Calculators" component={CalculatorsScreen} />
+      <Tab.Screen name="Profile"     component={ProfileScreen}     />
     </Tab.Navigator>
   );
 }
 
-// Auto-trigger smart notifications on launch
+// ── Auto smart notifications on launch ────────────────────
 function NotifTrigger() {
   const { state } = useApp();
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const t = setTimeout(() => {
       triggerSmartNotifications(state).catch(() => {});
-    }, 3000); // 3s after load
-    return () => clearTimeout(timer);
-  }, []); // only on mount
+    }, 3000);
+    return () => clearTimeout(t);
+  }, []);
   return null;
 }
 
@@ -114,10 +127,10 @@ function ThemedApp() {
   const { T, mode } = useTheme();
   return (
     <>
-      <StatusBar barStyle={mode==='light'?'dark-content':'light-content'} backgroundColor={T.bg} />
+      <StatusBar barStyle={mode === 'light' ? 'dark-content' : 'light-content'} backgroundColor={T.bg} />
       <NavigationContainer theme={{
         dark: mode !== 'light',
-        colors: { primary:'#4F8CFF', background:T.bg, card:T.l1, text:T.t1, border:T.border, notification:'#EF4444' },
+        colors: { primary: '#4F8CFF', background: T.bg, card: T.l1, text: T.t1, border: T.border, notification: '#EF4444' },
       }}>
         <NotifTrigger />
         <MainTabs />
@@ -133,13 +146,15 @@ export default function App() {
   });
 
   const onLayout = useCallback(async () => {
-    if (fontsLoaded || fontError) await SplashScreen.hideAsync().catch(() => {});
+    if (fontsLoaded || fontError) {
+      await SplashScreen.hideAsync().catch(() => {});
+    }
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex:1 }} onLayout={onLayout}>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayout}>
       <SafeAreaProvider>
         <ThemeProvider>
           <AppProvider>
@@ -152,9 +167,30 @@ export default function App() {
 }
 
 const st = StyleSheet.create({
-  bar:     { flexDirection:'row', borderTopWidth:1, paddingTop:10, paddingBottom:Platform.OS==='ios'?28:12,
-             paddingHorizontal:4, elevation:20, shadowColor:'#000',
-             shadowOffset:{width:0,height:-3}, shadowOpacity:0.4, shadowRadius:10 },
-  tabItem: { flex:1, alignItems:'center', gap:3 },
-  pill:    { width:44, height:30, borderRadius:10, alignItems:'center', justifyContent:'center' },
+  bar: {
+    flexDirection: 'row', borderTopWidth: 1,
+    paddingTop: 8, paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+    paddingHorizontal: 8, elevation: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.4, shadowRadius: 12,
+  },
+  tabItem: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+  },
+  // Active tab — horizontal pill with icon + label
+  activePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#4F8CFF',
+    borderRadius: 999,
+    paddingHorizontal: 14, paddingVertical: 7,
+    shadowColor: '#4F8CFF', shadowOpacity: 0.45,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
+    elevation: 8,
+  },
+  activeLabel: {
+    fontSize: 12, fontWeight: '700', color: '#fff', letterSpacing: 0.2,
+  },
+  // Inactive tab — just icon + tiny label below
+  inactiveItem: { alignItems: 'center', gap: 2, paddingVertical: 4 },
+  inactiveLabel: { fontSize: 10, fontWeight: '500', letterSpacing: 0.2 },
 });

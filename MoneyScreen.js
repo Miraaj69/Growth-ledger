@@ -82,30 +82,89 @@ const SalaryTab = memo(({ s, dispatch, set }) => {
         )}
       </Card>
 
-      {/* Attendance calendar */}
+      {/* Attendance calendar — correct weekday + holiday support */}
       <Card style={{ marginBottom:12 }}>
-        <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:SP.md }}>
-          <SH title={`${MONTHS_FULL[s.currentMonth||0]} ${s.currentYear||2025}`} />
+        {/* Header */}
+        <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+          <Text style={{ fontSize:18, fontWeight:'800', color:T.t1 }}>{MONTHS_FULL[s.currentMonth||0]} {s.currentYear||new Date().getFullYear()}</Text>
           <Chip label={`${(s.attendance instanceof Set ? s.attendance : new Set()).size} present`} color="#22C55E" dot />
         </View>
-        <View style={{ flexDirection:'row', marginBottom:6 }}>
-          {['M','T','W','T','F','S','S'].map((d,i)=><Text key={i} style={{ flex:1, textAlign:'center', fontSize:10, color:T.t3, paddingBottom:4 }}>{d}</Text>)}
+        {/* Legend */}
+        <View style={{ flexDirection:'row', gap:12, marginBottom:SP.md }}>
+          {[{c:'#22C55E',l:'Present'},{c:'#EF4444',l:'Holiday'},{c:'#4F8CFF',l:'Today'},{c:T.t3+'40',l:'Weekend'}].map((x,i)=>(
+            <View key={i} style={{ flexDirection:'row', alignItems:'center', gap:4 }}>
+              <View style={{ width:7, height:7, borderRadius:7, backgroundColor:x.c }} />
+              <Text style={{ fontSize:9, color:T.t3 }}>{x.l}</Text>
+            </View>
+          ))}
         </View>
-        <View style={{ flexDirection:'row', flexWrap:'wrap', gap:4 }}>
-          {Array.from({length:31},(_,i)=>i+1).map(d => {
-            const att = s.attendance instanceof Set ? s.attendance : new Set();
-            const on   = att.has(d);
-            const isT  = d===today && (s.currentMonth||0)===new Date().getMonth();
-            const wknd = d%7===0||d%7===6;
-            return (
-              <Pressable key={d} onPress={() => !wknd && dispatch({ type:'TOGGLE_ATT', day:d })}
-                style={{ width:'12.5%', aspectRatio:1, borderRadius:8, alignItems:'center', justifyContent:'center',
-                  backgroundColor: on?'#22C55E28':isT?'#4F8CFF22':'rgba(255,255,255,0.03)',
-                  borderWidth:1, borderColor: on?'#22C55E44':isT?'#4F8CFF44':'transparent' }}>
-                <Text style={{ fontSize:11, fontWeight:isT?'700':'400', color:on?'#22C55E':wknd?T.t3+'55':isT?'#4F8CFF':T.t2 }}>{d}</Text>
+        {/* Day headers — Mon to Sun */}
+        <View style={{ flexDirection:'row', marginBottom:4 }}>
+          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>(
+            <Text key={i} style={{ flex:1, textAlign:'center', fontSize:9, color:i>=5?'#EF4444':T.t3, fontWeight:'600' }}>{d}</Text>
+          ))}
+        </View>
+        {/* Calendar grid — correct day-of-week layout */}
+        {(() => {
+          const yr  = s.currentYear  || new Date().getFullYear();
+          const mo  = s.currentMonth || 0;
+          const att = s.attendance instanceof Set ? s.attendance : new Set();
+          const holidays = s.holidays || [];
+          const now = new Date();
+          const daysInMonth = new Date(yr, mo + 1, 0).getDate();
+          // getDay(): 0=Sun, 1=Mon... → we want Mon=0 offset
+          const firstDow  = new Date(yr, mo, 1).getDay(); // 0=Sun
+          const startOffset = firstDow === 0 ? 6 : firstDow - 1; // Mon-based offset
+          const cells = [];
+          // Empty cells before month start
+          for (let e = 0; e < startOffset; e++) cells.push(<View key={`e${e}`} style={{ flex:1, aspectRatio:1 }} />);
+          // Day cells
+          for (let d = 1; d <= daysInMonth; d++) {
+            const dow      = new Date(yr, mo, d).getDay(); // 0=Sun,6=Sat
+            const isSun    = dow === 0;
+            const isSat    = dow === 6;
+            const isWknd   = isSun || isSat;
+            const dateStr  = `${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const isHol    = holidays.includes(dateStr);
+            const isToday  = d===now.getDate() && mo===now.getMonth() && yr===now.getFullYear();
+            const isPresent= att.has(d);
+            const canTap   = !isWknd && !isHol;
+            const bg       = isPresent?'#22C55E28':isHol?'#EF444420':isToday?'#4F8CFF22':isWknd?'transparent':'rgba(255,255,255,0.03)';
+            const border   = isPresent?'#22C55E44':isHol?'#EF444440':isToday?'#4F8CFF44':'transparent';
+            const txtColor = isPresent?'#22C55E':isHol?'#EF4444':isToday?'#4F8CFF':isWknd?T.t3+'55':T.t2;
+            cells.push(
+              <Pressable key={d} onPress={() => canTap && dispatch({ type:'TOGGLE_ATT', day:d })}
+                style={{ flex:1, aspectRatio:1, borderRadius:8, alignItems:'center', justifyContent:'center',
+                  backgroundColor:bg, borderWidth:1, borderColor:border, margin:1 }}>
+                <Text style={{ fontSize:11, fontWeight:isToday?'700':'400', color:txtColor }}>{d}</Text>
+                {isHol && <View style={{ width:4, height:4, borderRadius:2, backgroundColor:'#EF4444', marginTop:1 }} />}
               </Pressable>
             );
-          })}
+          }
+          // Fill remaining cells to complete last row
+          const total = startOffset + daysInMonth;
+          const remainder = total % 7;
+          if (remainder !== 0) for (let e = 0; e < 7 - remainder; e++) cells.push(<View key={`f${e}`} style={{ flex:1, aspectRatio:1, margin:1 }} />);
+          // Chunk into weeks (rows of 7)
+          const weeks = [];
+          for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i+7));
+          return weeks.map((week, wi) => (
+            <View key={wi} style={{ flexDirection:'row', marginBottom:3 }}>{week}</View>
+          ));
+        })()}
+        {/* Stats row */}
+        <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop:SP.sm, paddingTop:SP.sm, borderTopWidth:1, borderTopColor:T.border }}>
+          {[
+            { l:'Working', v: (() => { const yr=s.currentYear||new Date().getFullYear(),mo=s.currentMonth||0; let c=0; for(let d=1;d<=new Date(yr,mo+1,0).getDate();d++){const dow=new Date(yr,mo,d).getDay();if(dow!==0&&dow!==6&&!(s.holidays||[]).includes(`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`))c++;} return c; })(), c:'#4F8CFF' },
+            { l:'Present',  v:(s.attendance instanceof Set?s.attendance:new Set()).size, c:'#22C55E' },
+            { l:'Absent',   v: Math.max(0, (() => { const yr=s.currentYear||new Date().getFullYear(),mo=s.currentMonth||0; let c=0; for(let d=1;d<=new Date(yr,mo+1,0).getDate();d++){const dow=new Date(yr,mo,d).getDay();if(dow!==0&&dow!==6&&!(s.holidays||[]).includes(`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`))c++;} return c; })() - (s.attendance instanceof Set?s.attendance:new Set()).size), c:'#EF4444' },
+            { l:'Holidays', v:(s.holidays||[]).filter(h=>h.startsWith(`${s.currentYear||new Date().getFullYear()}-${String((s.currentMonth||0)+1).padStart(2,'0')}`)).length, c:'#F59E0B' },
+          ].map((x,i)=>(
+            <View key={i} style={{ alignItems:'center' }}>
+              <Text style={{ fontSize:18, fontWeight:'800', color:x.c }}>{x.v}</Text>
+              <Text style={{ fontSize:10, color:T.t3 }}>{x.l}</Text>
+            </View>
+          ))}
         </View>
       </Card>
     </View>
