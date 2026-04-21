@@ -342,6 +342,7 @@ export default function HomeScreen({ navigation }) {
           <SH title="Quick Tools" />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {[
+              { icon: '🎯', label: 'Goals',          screen: 'Goals'     },
               { icon: '🧾', label: 'Tax Estimator',  screen: 'Tax'       },
               { icon: '📊', label: 'Simulator',       screen: 'Simulator' },
               { icon: '🧠', label: 'AI Decisions',    screen: 'Decisions' },

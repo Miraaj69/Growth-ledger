@@ -6,8 +6,9 @@ import { useApp } from './AppContext';
 import { useTheme } from './ThemeContext';
 import { fmt, safePct, calcScore } from './helpers';
 import { SPACING as SP, RADIUS as R } from './theme';
-import { Card, GCard, Chip, Bar, SH, Toggle } from './UI';
+import { Card, GCard, Chip, Bar, SH, Toggle, AlertRow } from './UI';
 import { clearState } from './storage';
+import { triggerSmartNotifications, getNotifSuggestions } from './notifications';
 
 export default function ProfileScreen() {
   const { state: s, set, dispatch } = useApp();
@@ -175,6 +176,25 @@ export default function ProfileScreen() {
       <View style={{ marginHorizontal:SP.md }}>
         <Card style={{ marginBottom:12 }}>
           <SH title="Data & Actions" />
+          {/* Smart Notifications Panel */}
+          <View style={{ marginBottom:12 }}>
+            <Card>
+              <SH title="🔔 Smart Notifications" />
+              {getNotifSuggestions(s).map((n, i) => (
+                <AlertRow key={i} icon={n.icon} msg={n.msg} color={n.color} last={i===getNotifSuggestions(s).length-1} />
+              ))}
+              {getNotifSuggestions(s).length === 0 && (
+                <Text style={{ fontSize:13, color:T.t3, textAlign:'center', paddingVertical:12 }}>
+                  ✅ No critical alerts — finances look healthy!
+                </Text>
+              )}
+              <Pressable onPress={()=>triggerSmartNotifications(s).catch(()=>{})}
+                style={{ marginTop:12, backgroundColor:'#4F8CFF22', borderRadius:12, padding:12, borderWidth:1, borderColor:'#4F8CFF40', alignItems:'center' }}>
+                <Text style={{ fontSize:13, fontWeight:'600', color:'#4F8CFF' }}>🔔 Send Smart Reminders Now</Text>
+              </Pressable>
+            </Card>
+          </View>
+
           {[
             {icon:'💾',label:'Export JSON Backup', right:'↓ Save',  action:handleExport},
             {icon:'🔄',label:'Reset All Data',     right:'Reset',   action:handleReset, danger:true},
