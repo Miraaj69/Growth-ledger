@@ -76,7 +76,7 @@ export default function ProfileScreen() {
       }
       if (dates.length === 0) { Alert.alert('No valid dates found', 'Use format: YYYY-MM-DD'); return; }
       dispatch({ type: 'SET_HOLIDAYS', holidays: dates });
-      Alert.alert('✅ Holidays Imported', \`\${dates.length} holiday dates loaded.\n\nThey will show in red on the attendance calendar.\`);
+      Alert.alert('✅ Holidays Imported', `${dates.length} holiday dates loaded.\n\nThey will show in red on the attendance calendar.`);
     } catch (e) {
       Alert.alert('Import Failed', e.message || 'Could not read file');
     }
