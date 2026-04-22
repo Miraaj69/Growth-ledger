@@ -545,12 +545,13 @@ function EarningsTrendCard({ s, d }) {
 
   const handleToggle = useCallback((mode) => {
     if (mode === viewMode) return;
+    // Fade out first (native driver)
     Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
       setViewMode(mode);
-      Animated.parallel([
-        Animated.spring(slideAnim, { toValue: mode === 'monthly' ? 0 : 1, useNativeDriver: false, speed: 28, bounciness: 0 }),
-        Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-      ]).start();
+      // slideAnim is non-native (width/position), run separately
+      Animated.spring(slideAnim, { toValue: mode === 'monthly' ? 0 : 1, useNativeDriver: false, speed: 28, bounciness: 0 }).start();
+      // fadeAnim is native, run separately
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
     });
   }, [viewMode]);
 

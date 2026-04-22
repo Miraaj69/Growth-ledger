@@ -48,53 +48,37 @@ const TABS = [
 function TabItem({ tab, isActive, onPress }) {
   const { T } = useTheme();
 
-  // Animated values — stable refs, never recreated
+  // ── ALL animations use useNativeDriver: TRUE only ────────
+  // width animation removed (cannot use non-native) → use opacity instead
   const scale  = React.useRef(new Animated.Value(isActive ? 1.08 : 1)).current;
   const labelO = React.useRef(new Animated.Value(isActive ? 1 : 0)).current;
   const labelY = React.useRef(new Animated.Value(isActive ? 0 : 4)).current;
   const dotO   = React.useRef(new Animated.Value(isActive ? 1 : 0)).current;
-  const dotW   = React.useRef(new Animated.Value(isActive ? 18 : 4)).current;
+  const iconO  = React.useRef(new Animated.Value(isActive ? 1 : 0.35)).current;
 
   React.useEffect(() => {
     if (isActive) {
-      // Bounce the icon up on activation
+      // Bounce icon
       Animated.sequence([
-        Animated.spring(scale, {
-          toValue: 1.26,
-          useNativeDriver: true,
-          speed: 45,
-          bounciness: 16,
-        }),
-        Animated.spring(scale, {
-          toValue: 1.08,
-          useNativeDriver: true,
-          speed: 28,
-          bounciness: 2,
-        }),
+        Animated.spring(scale, { toValue: 1.22, useNativeDriver: true, speed: 45, bounciness: 14 }),
+        Animated.spring(scale, { toValue: 1.08, useNativeDriver: true, speed: 28, bounciness: 2  }),
       ]).start();
-
-      // Label slides up into view
+      // Fade in all elements — ALL native driver true
       Animated.parallel([
-        Animated.spring(labelY, { toValue: 0,  useNativeDriver: true, speed: 28, bounciness: 4 }),
-        Animated.timing(labelO, { toValue: 1,  duration: 220, useNativeDriver: true }),
-        Animated.timing(dotO,   { toValue: 1,  duration: 160, useNativeDriver: true }),
-        Animated.spring(dotW,   { toValue: 18, useNativeDriver: false, speed: 30, bounciness: 6 }),
+        Animated.spring(labelY,  { toValue: 0, useNativeDriver: true, speed: 28, bounciness: 4 }),
+        Animated.timing(labelO,  { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.timing(dotO,    { toValue: 1, duration: 160, useNativeDriver: true }),
+        Animated.timing(iconO,   { toValue: 1, duration: 160, useNativeDriver: true }),
       ]).start();
     } else {
-      // Icon shrinks back to rest
-      Animated.spring(scale, {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 30,
-        bounciness: 0,
-      }).start();
-
-      // Label fades + slides down out of view
+      // Shrink icon
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 0 }).start();
+      // Fade out — ALL native driver true
       Animated.parallel([
-        Animated.timing(labelO, { toValue: 0, duration: 130, useNativeDriver: true }),
-        Animated.spring(labelY, { toValue: 4, useNativeDriver: true, speed: 30, bounciness: 0 }),
-        Animated.timing(dotO,   { toValue: 0, duration: 130, useNativeDriver: true }),
-        Animated.spring(dotW,   { toValue: 4, useNativeDriver: false, speed: 30, bounciness: 0 }),
+        Animated.timing(labelO, { toValue: 0,    duration: 130, useNativeDriver: true }),
+        Animated.spring(labelY, { toValue: 4,    useNativeDriver: true, speed: 30, bounciness: 0 }),
+        Animated.timing(dotO,   { toValue: 0,    duration: 130, useNativeDriver: true }),
+        Animated.timing(iconO,  { toValue: 0.35, duration: 130, useNativeDriver: true }),
       ]).start();
     }
   }, [isActive]);
@@ -112,20 +96,17 @@ function TabItem({ tab, isActive, onPress }) {
     >
       <View style={st.tabInner}>
 
-        {/* ── Icon ── */}
+        {/* ── Icon — opacity + scale, both native driver ── */}
         <Animated.Text
           style={[
             st.tabIcon,
-            {
-              opacity: isActive ? 1 : 0.35,
-              transform: [{ scale }],
-            },
+            { opacity: iconO, transform: [{ scale }] },
           ]}
         >
           {tab?.icon}
         </Animated.Text>
 
-        {/* ── Label — only rendered for active tab (animated in/out) ── */}
+        {/* ── Label — fades + slides, native driver ── */}
         <Animated.Text
           style={[
             st.tabLabel,
@@ -136,11 +117,11 @@ function TabItem({ tab, isActive, onPress }) {
           {tab?.label}
         </Animated.Text>
 
-        {/* ── Dot indicator — expands into pill when active ── */}
+        {/* ── Dot indicator — opacity only (no width), native driver ── */}
         <Animated.View
           style={[
             st.tabDot,
-            { opacity: dotO, width: dotW, backgroundColor: '#4F8CFF' },
+            { opacity: dotO, backgroundColor: '#4F8CFF' },
           ]}
         />
       </View>
