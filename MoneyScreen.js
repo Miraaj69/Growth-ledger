@@ -20,6 +20,7 @@ import {
   StatRow, Input, Btn, FAB, MonthPicker,
 } from './UI';
 import { DonutChart } from './Charts';
+import { SipTab } from './SipScreen';
 
 // ─────────────────────────────────────────────────────────
 // INVESTOR WISDOM DATA
@@ -935,144 +936,502 @@ const SalaryTab = memo(({ s, dispatch, set }) => {
 const ExpensesTab = memo(({ s, dispatch }) => {
   const { T } = useTheme();
   const d = useMemo(() => deriveState(s), [s]);
-  const total  = d.manualTotal;
-  const budget = d.needsBudget;
-  const isOver = total > budget && budget > 0;
+
+  // ── State ──────────────────────────────────────────────
+  const [selectedSeg,  setSelectedSeg]  = useState(null);  // null | 0|1|2
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [addCat,       setAddCat]       = useState('Food');
+  const [addAmt,       setAddAmt]       = useState('');
+  const [addFreq,      setAddFreq]      = useState('Monthly');
+  const [addErr,       setAddErr]       = useState('');
+  const [showCatDrop,  setShowCatDrop]  = useState(false);
+  const [showFreqDrop, setShowFreqDrop] = useState(false);
+  const segAnim = useRef(new Animated.Value(0)).current;
+
+  const salary  = s.salary || 0;
+  const exps    = s.expenses || [];
+  const mExp    = s.manualExpenses || [];
+  const wntPct  = exps.find(e => e?.label === 'Wants')?.pct   || 30;
+  const savPct  = exps.find(e => e?.label === 'Savings')?.pct || 20;
+  const nedPct  = exps.find(e => e?.label === 'Needs')?.pct   || 50;
+  const totalSpent = mExp.filter(e => e?.isActive !== false).reduce((a, e) => a + (Number(e?.amount) || 0), 0);
+  const budget  = salary * nedPct / 100;
+  const spentPct= budget > 0 ? Math.min(100, Math.round((totalSpent / budget) * 100)) : 0;
+  const budgetColor = spentPct < 70 ? '#22C55E' : spentPct < 90 ? '#F59E0B' : '#EF4444';
+  const budgetScore = Math.max(0, Math.min(100, Math.round(
+    (savPct >= 20 ? 40 : savPct / 20 * 40) +
+    (wntPct <= 30 ? 35 : Math.max(0, 35 - (wntPct - 30) * 2)) +
+    (spentPct < 80 ? 25 : Math.max(0, 25 - (spentPct - 80)))
+  )));
+
+  // ── Donut segments with tap animation ──────────────────
+  const donutSegs = exps.map(e => ({ pct: e.pct, color: e.color }));
+  const centerLabel = selectedSeg != null && exps[selectedSeg]
+    ? `${fmt(salary * exps[selectedSeg].pct / 100)}\n${exps[selectedSeg].label}`
+    : salary > 0 ? fmt(salary) : '—';
+
+  const onSegTap = (idx) => {
+    setSelectedSeg(prev => prev === idx ? null : idx);
+    Animated.sequence([
+      Animated.timing(segAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      Animated.timing(segAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+    ]).start();
+  };
+
+  // ── Smart Summary ─────────────────────────────────────
+  const smartMsg = (() => {
+    if (salary === 0) return { main: 'Add salary to see smart summary', flags: [], suggestion: '' };
+    const flags = [];
+    if (nedPct > 50) flags.push({ icon: '⚠️', msg: `Needs high (${nedPct}%)`, color: '#EF4444' });
+    else             flags.push({ icon: '✅', msg: `Needs on track (${nedPct}%)`, color: '#22C55E' });
+    if (wntPct > 30) flags.push({ icon: '⚠️', msg: `Wants slightly high (${wntPct}%)`, color: '#F59E0B' });
+    else             flags.push({ icon: '✅', msg: `Wants in check (${wntPct}%)`, color: '#22C55E' });
+    if (savPct < 20) flags.push({ icon: '⚠️', msg: `Savings low (${savPct}%)`, color: '#EF4444' });
+    else             flags.push({ icon: '✅', msg: `Savings on track (${savPct}%)`, color: '#22C55E' });
+    const suggestion = wntPct > 30
+      ? `Suggestion: Reduce Wants by ${fmt(salary * (wntPct - 30) / 100)} to save more`
+      : savPct < 20
+      ? `Suggestion: Increase Savings to 20% — automate on salary day`
+      : `Looking great! Your budget is well balanced 🎉`;
+    return { main: `You spent ${fmt(totalSpent)} this month`, flags, suggestion };
+  })();
+
+  // ── Expense % auto-balance ────────────────────────────
+  const updatePct = (idx, newPct) => {
+    const clamped = Math.max(0, Math.min(100, newPct));
+    const others  = exps.filter((_, i) => i !== idx);
+    const remaining = 100 - clamped;
+    const otherSum  = others.reduce((a, e) => a + e.pct, 0);
+    if (otherSum === 0) return;
+    // proportionally adjust others
+    others.forEach((e, j) => {
+      const realIdx = exps.findIndex((ex, i) => i !== idx && ex === e);
+      const newP    = Math.max(0, Math.round(e.pct * remaining / otherSum));
+      dispatch({ type: 'UPD_EXP_PCT', idx: realIdx, pct: newP });
+    });
+    dispatch({ type: 'UPD_EXP_PCT', idx, pct: clamped });
+  };
+
+  const EXPENSE_META = {
+    Needs:   { sub: 'Essentials (Rent, Food)',     icon: '🏠', warnAbove: 55, warnMsg: 'High (>50%)' },
+    Wants:   { sub: 'Lifestyle (Shopping, Travel)', icon: '🛍️', warnAbove: 31, warnMsg: 'High (>30%)' },
+    Savings: { sub: 'Investments',                  icon: '💰', warnBelow: 19, warnMsg: 'Low (<20%)' },
+  };
+
+  // ── Category definitions for Add Expense ──────────────
+  const CATS = [
+    { label: 'Food',          icon: '🍔' },
+    { label: 'Travel',        icon: '🚗' },
+    { label: 'Shopping',      icon: '🛍️' },
+    { label: 'Rent',          icon: '🏠' },
+    { label: 'Utilities',     icon: '💡' },
+    { label: 'Entertainment', icon: '🎬' },
+    { label: 'Health',        icon: '🏥' },
+    { label: 'Education',     icon: '📚' },
+    { label: 'Other',         icon: '💳' },
+  ];
+  const FREQS = ['Monthly', 'Weekly', 'One-time'];
+  const catObj = CATS.find(c => c.label === addCat) || CATS[0];
+
+  const handleAddExpense = () => {
+    const amt = Number(addAmt);
+    if (!addAmt || isNaN(amt) || amt <= 0) { setAddErr('Enter a valid amount'); return; }
+    setAddErr('');
+    dispatch({
+      type: 'ADD_MEXP',
+      exp: { cat: addCat, amount: amt, icon: catObj.icon, color: '#4F8CFF', recurring: addFreq === 'Monthly', isActive: true, frequency: addFreq },
+    });
+    setAddAmt('');
+    setAddCat('Food');
+    setAddFreq('Monthly');
+    setShowAddSheet(false);
+  };
+
+  const activeMExp  = mExp.filter(e => e?.isActive !== false);
+  const excludedAmt = mExp.filter(e => e?.isActive === false).reduce((a, e) => a + (Number(e?.amount) || 0), 0);
+  const RECENT_TXN  = [
+    { app: 'Zomato', cat: 'Food',     icon: '🍕', amt: 450,  when: 'Today'     },
+    { app: 'Uber',   cat: 'Travel',   icon: '🚗', amt: 320,  when: 'Yesterday' },
+    { app: 'Amazon', cat: 'Shopping', icon: '📦', amt: 1250, when: 'Yesterday' },
+  ];
 
   return (
     <View>
-      <Card style={{ marginBottom: 12 }}>
+
+      {/* ── 1. SMART SUMMARY CARD ──────────────────────── */}
+      <LinearGradient colors={['#1a1a2e','#16213e']}
+        style={{ borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(79,140,255,0.2)' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: '#4F8CFF22', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 20 }}>📊</Text>
+          </View>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', flex: 1 }}>{smartMsg.main}</Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Budget</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: budgetColor }}>{budgetScore}/100</Text>
+          </View>
+        </View>
+        {smartMsg.flags.map((f, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <Text style={{ fontSize: 12 }}>{f.icon}</Text>
+            <Text style={{ fontSize: 12, color: f.color, fontWeight: '600' }}>{f.msg}</Text>
+          </View>
+        ))}
+        {smartMsg.suggestion ? (
+          <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 10, marginTop: 10 }}>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 18 }}>{smartMsg.suggestion}</Text>
+          </View>
+        ) : null}
+      </LinearGradient>
+
+      {/* ── 2. INTERACTIVE DONUT CHART ─────────────────── */}
+      <View style={{ backgroundColor: T.l1, borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: T.border }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: T.t1 }}>Spending Breakdown</Text>
+          <Text style={{ fontSize: 11, color: T.t3 }}>Total Expenses</Text>
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <DonutChart
-            segments={(s.expenses || []).map(e => ({ pct: e.pct, color: e.color }))}
-            size={96} sw={12}
-            centerLabel={s.salary > 0 ? fmtShort(s.salary) : '—'}
-          />
+          {/* Tappable donut */}
+          <View>
+            <Animated.View style={{ transform: [{ scale: segAnim.interpolate({ inputRange:[0,1], outputRange:[1,1.04] }) }] }}>
+              <Pressable onPress={() => setSelectedSeg(null)}>
+                <DonutChart
+                  segments={donutSegs.map((seg, i) => ({
+                    ...seg,
+                    pct: seg.pct,
+                    color: selectedSeg === i ? seg.color : selectedSeg != null ? seg.color + '60' : seg.color,
+                  }))}
+                  size={100} sw={14}
+                  centerLabel={selectedSeg != null && exps[selectedSeg]
+                    ? `${exps[selectedSeg].pct}%`
+                    : salary > 0 ? '₹' + Math.round(salary/1000) + 'K' : '—'}
+                />
+              </Pressable>
+            </Animated.View>
+            <Text style={{ fontSize: 9, color: T.t3, textAlign: 'center', marginTop: 4 }}>Tap a segment 👆</Text>
+          </View>
+          {/* Legend — tappable rows */}
           <View style={{ flex: 1 }}>
-            {(s.expenses || []).map((e, i) => (
-              <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 3, backgroundColor: e.color }} />
-                  <Text style={{ fontSize: 13, color: T.t2 }}>{e.label}</Text>
+            {exps.map((e, i) => (
+              <Pressable key={i} onPress={() => onSegTap(i)}
+                style={[{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, marginBottom: 4 },
+                  selectedSeg === i && { backgroundColor: e.color + '18' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: e.color, opacity: selectedSeg != null && selectedSeg !== i ? 0.4 : 1 }} />
+                  <Text style={{ fontSize: 13, color: selectedSeg === i ? T.t1 : T.t2, fontWeight: selectedSeg === i ? '700' : '400' }}>{e.label}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ fontWeight: '700', fontSize: 13, color: e.color }}>
-                    {s.salary > 0 ? fmt(s.salary * e.pct / 100) : `${e.pct}%`}
-                  </Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: e.color }}>{salary > 0 ? fmt(salary * e.pct / 100) : `${e.pct}%`}</Text>
                   <Text style={{ fontSize: 10, color: T.t3 }}>{e.pct}%</Text>
                 </View>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>
-      </Card>
-      {(s.expenses || []).map((e, i) => (
-        <Card key={i} style={{ marginBottom: 10 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <View>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: T.t1 }}>{e.label}</Text>
-              <Text style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>
-                {s.salary > 0 ? fmt(s.salary * e.pct / 100) + '/month' : `${e.pct}% of salary`}
-              </Text>
-            </View>
-            <View style={{ backgroundColor: e.color + '20', borderRadius: 11, paddingHorizontal: 14, paddingVertical: 7 }}>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: e.color }}>{e.pct}%</Text>
-            </View>
+        {/* Selected segment detail */}
+        {selectedSeg != null && exps[selectedSeg] && (
+          <View style={{ backgroundColor: exps[selectedSeg].color + '15', borderRadius: 12, padding: 10, marginTop: 8, borderWidth: 1, borderColor: exps[selectedSeg].color + '30' }}>
+            <Text style={{ fontSize: 13, color: exps[selectedSeg].color, fontWeight: '600' }}>
+              {exps[selectedSeg].label}: {fmt(salary * exps[selectedSeg].pct / 100)}/mo ({exps[selectedSeg].pct}%)
+            </Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Pressable onPress={() => dispatch({ type: 'UPD_EXP_PCT', idx: i, pct: Math.max(0, e.pct - 1) })}
-              style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: T.l2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border }}>
-              <Text style={{ fontSize: 20, color: T.t1 }}>−</Text>
-            </Pressable>
-            <View style={{ flex: 1 }}><Bar value={e.pct} total={100} color={e.color} h={6} /></View>
-            <Pressable onPress={() => dispatch({ type: 'UPD_EXP_PCT', idx: i, pct: Math.min(100, e.pct + 1) })}
-              style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: T.l2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border }}>
-              <Text style={{ fontSize: 20, color: T.t1 }}>+</Text>
-            </Pressable>
-          </View>
-        </Card>
-      ))}
-      {budget > 0 && (
-        <View style={{ backgroundColor: isOver ? '#EF444412' : '#22C55E10', borderRadius: R.md, padding: SP.sm + 4, marginBottom: 11, flexDirection: 'row', justifyContent: 'space-between', borderWidth: 1, borderColor: isOver ? '#EF444430' : '#22C55E30' }}>
-          <Text style={{ fontSize: 13, color: T.t2 }}>Spent vs budget</Text>
-          <Text style={{ fontWeight: '700', fontSize: 13, color: isOver ? '#EF4444' : '#22C55E' }}>{fmt(total)} / {fmt(budget)}</Text>
+        )}
+      </View>
+
+      {/* ── 3. NEEDS / WANTS / SAVINGS SLIDERS ────────── */}
+      <View style={{ backgroundColor: T.l1, borderRadius: 18, padding: 4, marginBottom: 12, borderWidth: 1, borderColor: T.border, overflow: 'hidden' }}>
+        {exps.map((e, i) => {
+          const meta = EXPENSE_META[e.label] || {};
+          const isWarn = (meta.warnAbove != null && e.pct >= meta.warnAbove) || (meta.warnBelow != null && e.pct <= meta.warnBelow);
+          return (
+            <View key={i} style={[{ padding: 14 }, i < exps.length - 1 && { borderBottomWidth: 1, borderBottomColor: T.border }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                {/* Icon circle */}
+                <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: e.color + '22', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 20 }}>{meta.icon || '💰'}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: T.t1 }}>{e.label}</Text>
+                  <Text style={{ fontSize: 11, color: T.t3 }}>{meta.sub || ''}</Text>
+                  {salary > 0 && <Text style={{ fontSize: 11, color: T.t3 }}>₹{Math.round(salary * e.pct / 100).toLocaleString('en-IN')} / month</Text>}
+                </View>
+                {/* Pct badge with warning */}
+                <View style={{ alignItems: 'flex-end' }}>
+                  <View style={{ backgroundColor: e.color + '22', borderRadius: 11, paddingHorizontal: 14, paddingVertical: 7 }}>
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: e.color }}>{e.pct}%</Text>
+                  </View>
+                  {isWarn && <Text style={{ fontSize: 9, color: '#F59E0B', marginTop: 3 }}>⚠️ {meta.warnMsg}</Text>}
+                  {!isWarn && <Text style={{ fontSize: 9, color: '#22C55E', marginTop: 3 }}>✓ OK</Text>}
+                </View>
+              </View>
+              {/* +/- controls */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Pressable onPress={() => updatePct(i, e.pct - 1)}
+                  style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: T.l2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border }}>
+                  <Text style={{ fontSize: 20, color: T.t1 }}>−</Text>
+                </Pressable>
+                <View style={{ flex: 1 }}>
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', height: 6, borderRadius: 99, overflow: 'hidden' }}>
+                    <View style={{ width: `${e.pct}%`, height: '100%', borderRadius: 99, backgroundColor: e.color, shadowColor: e.color, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 }} />
+                  </View>
+                </View>
+                <Pressable onPress={() => updatePct(i, e.pct + 1)}
+                  style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: T.l2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border }}>
+                  <Text style={{ fontSize: 20, color: T.t1 }}>+</Text>
+                </Pressable>
+              </View>
+            </View>
+          );
+        })}
+        {/* Total = 100% indicator */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, padding: 10 }}>
+          <View style={{ width: 7, height: 7, borderRadius: 99, backgroundColor: exps.reduce((a,e)=>a+e.pct,0)===100?'#22C55E':'#EF4444' }} />
+          <Text style={{ fontSize: 12, color: T.t3 }}>Total Allocation: {exps.reduce((a,e)=>a+e.pct,0)}% {exps.reduce((a,e)=>a+e.pct,0)===100?'✅':''}</Text>
         </View>
-      )}
-      {(s.manualExpenses || []).map((ex, i) => (
-        <View key={ex?.id || i} style={{ backgroundColor: T.l2, borderRadius: R.md + 2, padding: SP.sm + 3, marginBottom: 9, flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderColor: T.border }}>
-          <Text style={{ fontSize: 20 }}>{ex?.icon || '💳'}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '600', fontSize: 13, color: T.t1 }}>{ex?.cat || 'Expense'}</Text>
-            {ex?.recurring && <Chip label="Auto" color="#14B8A6" sm />}
+      </View>
+
+      {/* ── 4. SPENT VS BUDGET (progress bar) ─────────── */}
+      <View style={{ backgroundColor: T.l1, borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: T.border }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: T.t1 }}>Spent vs Budget</Text>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: budgetColor }}>{fmt(totalSpent)} / {fmt(budget)}</Text>
+        </View>
+        <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', height: 14, borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
+          <View style={{ width: `${Math.min(100, spentPct)}%`, height: '100%', borderRadius: 99, backgroundColor: budgetColor, shadowColor: budgetColor, shadowOpacity: 0.5, shadowRadius: 8, elevation: 4 }} />
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 11, color: T.t3 }}>{spentPct}% used</Text>
+          <Text style={{ fontSize: 12, color: budgetColor, fontWeight: '600' }}>
+            {spentPct < 70 ? '🎉 You're doing great! Keep it up.' : spentPct < 90 ? '⚠️ Budget running tight' : '🔴 Over budget — review now'}
+          </Text>
+        </View>
+      </View>
+
+      {/* ── 5. SMART INSIGHT + BUDGET SCORE ───────────── */}
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+        {/* Smart Insight Card */}
+        <View style={{ flex: 1, backgroundColor: '#1a1a2e', borderRadius: 18, padding: 14, borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <Text style={{ fontSize: 14 }}>💡</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#F59E0B' }}>Smart Insight</Text>
           </View>
-          <Text style={{ fontWeight: '700', fontSize: 14, color: ex?.color || T.t1 }}>{fmt(ex?.amount || 0)}</Text>
-          <Toggle value={ex?.recurring || false} onChange={() => dispatch({ type: 'UPD_MEXP', idx: i, patch: { recurring: !ex?.recurring } })} />
-          <Pressable onPress={() => Alert.alert('Remove?', 'Remove this expense?', [{ text: 'Cancel' }, { text: 'Remove', style: 'destructive', onPress: () => dispatch({ type: 'DEL_MEXP', idx: i }) }])}>
-            <Text style={{ fontSize: 20, color: '#EF4444' }}>×</Text>
+          {wntPct > 30 ? (<>
+            <Text style={{ fontSize: 11, color: '#F59E0B', marginBottom: 6 }}>⚠️ You are overspending on Wants</Text>
+            <Text style={{ fontSize: 11, color: T.t2, lineHeight: 16 }}>
+              Reduce ₹{Math.round(salary*(wntPct-30)/100).toLocaleString('en-IN')} → invest in SIP → {(() => {
+                const extra = Math.round(salary*(wntPct-30)/100);
+                const corpus = Math.round(extra * ((Math.pow(1.01,120)-1)/0.01)*1.01);
+                return corpus >= 100000 ? `₹${(corpus/100000).toFixed(0)}L` : `₹${Math.round(corpus/1000)}K`;
+              })()} in 10 years
+            </Text>
+            <Pressable style={{ marginTop: 8 }}>
+              <Text style={{ fontSize: 11, color: '#4F8CFF', fontWeight: '600' }}>View Details →</Text>
+            </Pressable>
+          </>) : (<>
+            <Text style={{ fontSize: 11, color: '#22C55E', marginBottom: 6 }}>✅ Spending under control</Text>
+            <Text style={{ fontSize: 11, color: T.t2, lineHeight: 16 }}>
+              {savPct >= 20 ? `Great savings rate! Keep investing ${fmt(salary*savPct/100)}/mo` : `Boost savings to 20% for wealth building`}
+            </Text>
+          </>)}
+        </View>
+        {/* Budget Score Gauge */}
+        <View style={{ width: 140, backgroundColor: T.l1, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: T.border, alignItems: 'center' }}>
+          <Text style={{ fontSize: 16, marginBottom: 6 }}>🏆</Text>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: T.t1, marginBottom: 8 }}>Budget Score</Text>
+          {/* Score circle */}
+          <View style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 4, borderColor: budgetColor, alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: budgetColor }}>{budgetScore}</Text>
+            <Text style={{ fontSize: 9, color: T.t3 }}>/100</Text>
+          </View>
+          <Text style={{ fontSize: 11, color: budgetColor, fontWeight: '700' }}>{budgetScore >= 80 ? 'Excellent!' : budgetScore >= 60 ? 'Good job!' : 'Needs work'}</Text>
+        </View>
+      </View>
+
+      {/* ── 6. MANUAL EXPENSES LIST ────────────────────── */}
+      <View style={{ backgroundColor: T.l1, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: T.border, overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, paddingBottom: 10 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: T.t1 }}>Manual Expenses</Text>
+          <Pressable onPress={() => setShowAddSheet(true)}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#4F8CFF' }}>+ Add Expense</Text>
           </Pressable>
         </View>
-      ))}
+        {mExp.length === 0 ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ fontSize: 32, marginBottom: 8 }}>💳</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: T.t1, marginBottom: 4 }}>No expenses yet</Text>
+            <Pressable onPress={() => setShowAddSheet(true)}
+              style={{ backgroundColor: '#4F8CFF22', borderRadius: 11, paddingHorizontal: 20, paddingVertical: 10, borderWidth: 1, borderColor: '#4F8CFF44', marginTop: 8 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#4F8CFF' }}>+ Add Another Expense</Text>
+            </Pressable>
+          </View>
+        ) : (
+          mExp.map((ex, i) => {
+            const isActive = ex?.isActive !== false;
+            return (
+              <View key={ex?.id || i} style={[{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 12 }, i < mExp.length - 1 && { borderBottomWidth: 1, borderBottomColor: T.border }]}>
+                {/* Icon */}
+                <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: T.l2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border }}>
+                  <Text style={{ fontSize: 20 }}>{ex?.icon || '💳'}</Text>
+                </View>
+                {/* Name + freq */}
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: isActive ? T.t1 : T.t3 }}>{ex?.cat || 'Expense'}</Text>
+                  <Text style={{ fontSize: 11, color: T.t3 }}>{ex?.frequency || (ex?.recurring ? 'Monthly' : 'One-time')}</Text>
+                </View>
+                {/* Amount */}
+                <Text style={{ fontSize: 15, fontWeight: '800', color: isActive ? T.t1 : T.t3 }}>{fmt(ex?.amount || 0)}</Text>
+                {/* Toggle isActive */}
+                <Toggle
+                  value={isActive}
+                  onChange={() => dispatch({ type: 'UPD_MEXP', idx: i, patch: { isActive: !isActive } })}
+                />
+                {/* 3-dot menu → delete */}
+                <Pressable onPress={() => Alert.alert('Remove?', `Remove ${ex?.cat}?`, [{ text: 'Cancel' }, { text: 'Remove', style: 'destructive', onPress: () => dispatch({ type: 'DEL_MEXP', idx: i }) }])}>
+                  <Text style={{ fontSize: 16, color: T.t3 }}>⋮</Text>
+                </Pressable>
+              </View>
+            );
+          })
+        )}
+        {/* + Add Another row at bottom */}
+        {mExp.length > 0 && (
+          <Pressable onPress={() => setShowAddSheet(true)}
+            style={{ margin: 12, borderRadius: 12, borderWidth: 1, borderColor: '#4F8CFF44', borderStyle: 'dashed', padding: 12, alignItems: 'center', backgroundColor: '#4F8CFF08' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#4F8CFF' }}>+ Add Another Expense</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* ── 7. EXPENSE SUMMARY ─────────────────────────── */}
+      <View style={{ backgroundColor: T.l1, borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: T.border }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: T.t1, marginBottom: 14 }}>Expense Summary</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+          {[
+            { label: 'Active Expenses', val: fmt(totalSpent),    color: T.t1 },
+            { label: 'Excluded',        val: fmt(excludedAmt),   color: T.t3 },
+            { label: 'Total',           val: fmt(totalSpent + excludedAmt), color: T.t1 },
+          ].map((x, i) => (
+            <View key={i} style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: x.color }}>{x.val}</Text>
+              <Text style={{ fontSize: 10, color: T.t3, marginTop: 3 }}>{x.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* ── 8. RECENT TRANSACTIONS ─────────────────────── */}
+      <View style={{ backgroundColor: T.l1, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: T.border, overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, paddingBottom: 10 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: T.t1 }}>Recent Transactions</Text>
+          <Text style={{ fontSize: 12, color: '#4F8CFF', fontWeight: '600' }}>View All</Text>
+        </View>
+        {RECENT_TXN.map((txn, i) => (
+          <View key={i} style={[{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 12 }, i < RECENT_TXN.length - 1 && { borderBottomWidth: 1, borderBottomColor: T.border }]}>
+            <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: T.l2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.border }}>
+              <Text style={{ fontSize: 18 }}>{txn.icon}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: T.t1 }}>{txn.app}</Text>
+              <Text style={{ fontSize: 11, color: T.t3 }}>{txn.cat}</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: T.t1 }}>₹{txn.amt.toLocaleString('en-IN')}</Text>
+              <Text style={{ fontSize: 11, color: T.t3 }}>{txn.when}</Text>
+            </View>
+          </View>
+        ))}
+        <Pressable style={{ padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: T.border }}>
+          <Text style={{ fontSize: 12, color: T.t3 }}>+ 18 more transactions</Text>
+        </Pressable>
+      </View>
+
+      {/* ── ADD EXPENSE BOTTOM SHEET ────────────────────── */}
+      <Modal visible={showAddSheet} animationType="slide" transparent presentationStyle="overFullScreen" onRequestClose={() => setShowAddSheet(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }} onPress={() => setShowAddSheet(false)}>
+          <Pressable onPress={() => {}} activeOpacity={1}>
+            <View style={{ backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+              {/* Handle */}
+              <View style={{ width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, alignSelf: 'center', marginBottom: 16 }} />
+              {/* Title */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff' }}>Add Expense</Text>
+                <Pressable onPress={() => setShowAddSheet(false)}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 16, color: '#fff' }}>✕</Text>
+                </Pressable>
+              </View>
+
+              {/* Category Dropdown */}
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Category</Text>
+              <Pressable onPress={() => { setShowCatDrop(!showCatDrop); setShowFreqDrop(false); }}
+                style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}>
+                <Text style={{ fontSize: 16, color: '#fff' }}>{catObj.icon} {addCat}</Text>
+                <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>▾</Text>
+              </Pressable>
+              {showCatDrop && (
+                <View style={{ backgroundColor: '#222', borderRadius: 12, marginBottom: 4, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+                  {CATS.map(cat => (
+                    <Pressable key={cat.label} onPress={() => { setAddCat(cat.label); setShowCatDrop(false); }}
+                      style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <Text style={{ fontSize: 18 }}>{cat.icon}</Text>
+                      <Text style={{ fontSize: 14, color: addCat === cat.label ? '#4F8CFF' : '#fff', fontWeight: addCat === cat.label ? '700' : '400' }}>{cat.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {/* Amount + Frequency row */}
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Amount (₹)</Text>
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: addErr ? '#EF444466' : 'rgba(255,255,255,0.12)' }}>
+                    <TextInput
+                      value={addAmt}
+                      onChangeText={v => { setAddAmt(v.replace(/[^0-9]/g,'')); setAddErr(''); }}
+                      keyboardType="numeric"
+                      placeholder="3000"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}
+                    />
+                  </View>
+                  {addErr ? <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 3 }}>{addErr}</Text> : null}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Frequency</Text>
+                  <Pressable onPress={() => { setShowFreqDrop(!showFreqDrop); setShowCatDrop(false); }}
+                    style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}>
+                    <Text style={{ fontSize: 14, color: '#fff' }}>{addFreq}</Text>
+                    <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>▾</Text>
+                  </Pressable>
+                  {showFreqDrop && (
+                    <View style={{ position: 'absolute', top: 70, left: 0, right: 0, backgroundColor: '#222', borderRadius: 12, zIndex: 100, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                      {FREQS.map(f => (
+                        <Pressable key={f} onPress={() => { setAddFreq(f); setShowFreqDrop(false); }}
+                          style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                          <Text style={{ fontSize: 14, color: addFreq === f ? '#4F8CFF' : '#fff', fontWeight: addFreq === f ? '700' : '400' }}>{f}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* Save button */}
+              <Pressable onPress={handleAddExpense}
+                style={{ backgroundColor: '#4F8CFF', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, shadowColor: '#4F8CFF', shadowOpacity: 0.5, shadowRadius: 12, elevation: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff' }}>Save Expense</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
     </View>
   );
 });
 
-// ─────────────────────────────────────────────────────────
-// SIP TAB
-// ─────────────────────────────────────────────────────────
-const SipTab = memo(({ s, dispatch }) => {
-  const { T } = useTheme();
-  const d = useMemo(() => deriveState(s), [s]);
-  if ((s.sips || []).length === 0) return (
-    <Empty icon="📈" title="No SIPs added"
-      sub="Start your wealth journey. ₹500/mo in index funds grows significantly over time."
-      cta="Add first SIP"
-      onCta={() => dispatch({ type: 'ADD_SIP', sip: { name: 'Nifty 50 Index', amount: 500, returns: 12, months: 12, goalLink: null } })} />
-  );
-  return (
-    <View>
-      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
-        <GCard colors={['#052e16', '#064e30']} style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>Total SIP/mo</Text>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff' }}>{fmt(d.sipTotal)}</Text>
-        </GCard>
-        <GCard colors={['#0c1a4e', '#1a3080']} style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>Est. 1Y Corpus</Text>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff' }}>
-            {fmt((s.sips || []).reduce((a, x) => a + sipMaturity(x.amount || 0, 12, x.returns || 12), 0))}
-          </Text>
-        </GCard>
-      </View>
-      {(s.sips || []).map((si, i) => {
-        const mat = sipMaturity(si.amount || 0, si.months || 12, si.returns || 12);
-        const invest = (si.amount || 0) * (si.months || 12);
-        const inflAdjV = inflAdj(mat, Math.round((si.months || 12) / 12));
-        const cagr = sipCAGR(invest, mat, (si.months || 12) / 12 || 1);
-        return (
-          <Card key={si?.id || i} style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: T.t1 }}>{si.name || 'SIP'}</Text>
-                <View style={{ flexDirection: 'row', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
-                  <Chip label={`${si.returns || 12}% p.a.`} color="#22C55E" sm />
-                  {si.goalLink && <Chip label={`→ ${si.goalLink}`} color="#A78BFA" sm />}
-                </View>
-              </View>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: '#22C55E' }}>{fmt(si.amount || 0)}</Text>
-            </View>
-            <StatRow label="Invested" value={fmt(invest)} />
-            <StatRow label="Maturity (XIRR)" value={fmt(mat)} color="#22C55E" />
-            <StatRow label="Inflation-adjusted" value={fmt(inflAdjV)} color="#F59E0B" />
-            <StatRow label="CAGR" value={`${cagr}%`} color="#4F8CFF" last />
-            <Bar value={invest} total={Math.max(mat, 1)} color="#22C55E" h={5} />
-            <Pressable onPress={() => Alert.alert('Remove SIP?', `Remove ${si.name}?`, [{ text: 'Cancel' }, { text: 'Remove', style: 'destructive', onPress: () => dispatch({ type: 'DEL_SIP', idx: i }) }])} style={{ marginTop: 10 }}>
-              <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '600' }}>Remove SIP</Text>
-            </Pressable>
-          </Card>
-        );
-      })}
-    </View>
-  );
-});
+
+
 
 // ─────────────────────────────────────────────────────────
 // DEBT TAB
@@ -1193,7 +1552,7 @@ export default function MoneyScreen() {
   }, [dispatch, set]);
 
   const fabActions = {
-    sip:  [{ icon: '📈', label: 'Add SIP',  color: '#22C55E', action: () => dispatch({ type: 'ADD_SIP',  sip:  { name: 'New SIP',   amount: 500, returns: 12, months: 12, goalLink: null } }) }],
+
     debt: [{ icon: '🏦', label: 'Add Debt', color: '#EF4444', action: () => dispatch({ type: 'ADD_DEBT', debt: { name: 'New Loan',  amount: 0,   remaining: 0, emi: 0, rate: 0, dueDate: 5 } }) }],
     expenses: [{ icon: '💳', label: 'Add Expense', color: '#F59E0B', action: () => dispatch({ type: 'ADD_MEXP', exp: { cat: 'Other', amount: 0, icon: '💸', color: '#475569', recurring: false } }) }],
   };

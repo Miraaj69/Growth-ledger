@@ -35,9 +35,9 @@ export const INIT = () => {
 
     // ── SIPs ──────────────────────────────────────────────────
     sips: [
-      { name: 'Nifty 50 Index', amount: 3000, returns: 14, months: 24, goalLink: 'Emergency Fund' },
-      { name: 'ELSS Tax Saver', amount: 2000, returns: 16, months: 36, goalLink: 'Course Budget'  },
-      { name: 'Mid Cap Fund',   amount: 1500, returns: 18, months: 12, goalLink: null              },
+      { name: 'Nifty 50 Index Fund',        type: 'index',  amount: 5000, returns: 12, months: 240, goalKey: 'house',      goalTarget: 5000000, stepUpPct: 10, startDate: '15 Feb 2024', nextDate: '15 May 2026' },
+      { name: 'Parag Parikh Flexi Cap Fund', type: 'mutual', amount: 4000, returns: 13.6, months: 240, goalKey: 'retirement', goalTarget: 10000000, stepUpPct: 10, startDate: '15 Feb 2024', nextDate: '15 May 2026' },
+      { name: 'HDFC Gold ETF',              type: 'gold',   amount: 2000, returns: 10.8, months: 120, goalKey: 'car',        goalTarget: 1500000, stepUpPct: 0,  startDate: '15 Feb 2024', nextDate: '15 May 2026' },
     ],
 
     // ── Debts ─────────────────────────────────────────────────
