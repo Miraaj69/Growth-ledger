@@ -6,18 +6,34 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#080D1A",
-    "splash": { "image": "./assets/splash.png", "resizeMode": "contain", "backgroundColor": "#080D1A" },
-    "ios": { "supportsTablet": false, "bundleIdentifier": "com.ajaythakur69.growthledger" },
+    "backgroundColor": "#000000",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ajaythakur69.growthledger"
+    },
     "android": {
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#080D1A" },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
       "package": "com.ajaythakur69.growthledger"
     },
-    "extra": { "eas": { "projectId": "6b1fa9b6-c727-446e-bc87-ad247c2f32dc" } },
+    "extra": {
+      "eas": { "projectId": "6b1fa9b6-c727-446e-bc87-ad247c2f32dc" }
+    },
     "owner": "nidhi2701",
     "plugins": [
       "expo-font",
-      ["expo-splash-screen", { "backgroundColor": "#080D1A", "image": "./assets/splash.png", "resizeMode": "contain" }]
+      ["expo-splash-screen", {
+        "backgroundColor": "#000000",
+        "image": "./assets/splash.png",
+        "resizeMode": "contain"
+      }]
     ]
   }
 }

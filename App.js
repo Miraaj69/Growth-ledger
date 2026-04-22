@@ -26,6 +26,7 @@ import DecisionScreen    from './DecisionScreen';
 import CashFlowScreen    from './CashFlowScreen';
 import GrowthScreen      from './GrowthScreen';
 import GoalsScreen       from './GoalsScreen';
+import SplashAnimScreen  from './SplashAnimScreen';
 import CalculatorsScreen from './CalculatorsScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -123,6 +124,15 @@ function NotifTrigger() {
   return null;
 }
 
+// Fires DAILY_LOGIN once per session on mount
+function DailyLoginTrigger() {
+  const { dispatch } = useApp();
+  React.useEffect(() => {
+    dispatch({ type: 'DAILY_LOGIN' });
+  }, []);
+  return null;
+}
+
 function ThemedApp() {
   const { T, mode } = useTheme();
   return (
@@ -133,6 +143,7 @@ function ThemedApp() {
         colors: { primary: '#4F8CFF', background: T.bg, card: T.l1, text: T.t1, border: T.border, notification: '#EF4444' },
       }}>
         <NotifTrigger />
+        <DailyLoginTrigger />
         <MainTabs />
       </NavigationContainer>
     </>
@@ -140,6 +151,7 @@ function ThemedApp() {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = React.useState(true);
   const [fontsLoaded, fontError] = useFonts({
     Syne_500Medium, Syne_600SemiBold, Syne_700Bold, Syne_800ExtraBold,
     DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold,
@@ -152,6 +164,16 @@ export default function App() {
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;
+
+  if (showSplash) {
+    return (
+      <SplashAnimScreen
+        onDone={() => {
+          setShowSplash(false);
+        }}
+      />
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayout}>

@@ -97,7 +97,42 @@ function reducer(state, action) {
         return { ...state, attendance: att, xpTotal: Math.max(0, (state.xpTotal||0) + xpDelta) };
       }
 
-      // Income CRUD
+      // XP system
+    case 'ADD_XP': {
+      const xp     = Math.max(0, Number(action.xp) || 0);
+      const newXP  = (state.xpTotal || 0) + xp;
+      const newLvl = Math.floor(newXP / 100) + 1;
+      const hist   = [...(state.xpHistory || []), { date: new Date().toISOString().slice(0,10), xp, reason: action.reason || '' }].slice(-50);
+      const newBadges = [...(state.badges || [])];
+      if (newLvl >= 5  && !newBadges.includes('veteran'))  newBadges.push('veteran');
+      if (newLvl >= 10 && !newBadges.includes('master'))   newBadges.push('master');
+      if (newXP  >= 1000 && !newBadges.includes('whale'))  newBadges.push('whale');
+      return { ...state, xpTotal: newXP, level: newLvl, xpHistory: hist, badges: newBadges };
+    }
+
+    // Daily login + streak
+    case 'DAILY_LOGIN': {
+      const today    = new Date().toISOString().slice(0,10);
+      const last     = state.lastLoginDate;
+      if (last === today) return state; // already logged today
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+      const streak   = last === yesterday ? (state.loginStreak || 1) + 1 : 1;
+      const xp       = 10 + Math.min(streak, 7) * 2; // bonus for streaks
+      const newXP    = (state.xpTotal || 0) + xp;
+      const newLvl   = Math.floor(newXP / 100) + 1;
+      return { ...state, lastLoginDate: today, loginStreak: streak, xpTotal: newXP, level: newLvl, checkInDone: false };
+    }
+
+    // Daily check-in
+    case 'DAILY_CHECKIN': {
+      const today = new Date().toISOString().slice(0,10);
+      if (state.lastCheckIn === today) return state;
+      const newXP  = (state.xpTotal || 0) + 15;
+      const newLvl = Math.floor(newXP / 100) + 1;
+      return { ...state, lastCheckIn: today, checkInDone: true, xpTotal: newXP, level: newLvl };
+    }
+
+    // Income CRUD
       case 'ADD_INCOME':
         return { ...state, incomes: [...(state.incomes||[]), { ...action.income, id: Date.now().toString() }] };
       case 'UPD_INCOME':
