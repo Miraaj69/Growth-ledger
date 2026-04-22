@@ -1,30 +1,20 @@
-// App.js — Fixed: no more native/JS driver conflict on tab bar animations
-// ROOT CAUSE: dotW used useNativeDriver:false while other anims on the same
-// component used useNativeDriver:true. React Native forbids mixing drivers on
-// the same animated node.
-// FIX: Replace width animation (JS-only) with scaleX + opacity (fully native).
-
+// App.js — Premium Bottom Nav: vertical icon + label on active tab only
 import React, { useCallback, useEffect } from 'react';
-import {
-  View, StatusBar, Platform, Text, Pressable, StyleSheet, Animated,
-} from 'react-native';
+import { View, StatusBar, Platform, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
-  useFonts,
-  Syne_500Medium, Syne_600SemiBold, Syne_700Bold, Syne_800ExtraBold,
+  useFonts, Syne_500Medium, Syne_600SemiBold, Syne_700Bold, Syne_800ExtraBold,
 } from '@expo-google-fonts/syne';
-import {
-  DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold,
-} from '@expo-google-fonts/dm-sans';
+import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold } from '@expo-google-fonts/dm-sans';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
-import { AppProvider, useApp }      from './AppContext';
-import { ThemeProvider, useTheme }  from './ThemeContext';
+import { AppProvider, useApp }       from './AppContext';
+import { ThemeProvider, useTheme }   from './ThemeContext';
 import { triggerSmartNotifications } from './notifications';
 
 import HomeScreen        from './HomeScreen';
@@ -45,7 +35,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// ── Tab definitions ────────────────────────────────────────────────────────
+// ── Tab definitions ───────────────────────────────────────
 const TABS = [
   { name: 'Home',        icon: '🏠', label: 'Home'    },
   { name: 'Money',       icon: '💵', label: 'Money'   },
@@ -54,24 +44,20 @@ const TABS = [
   { name: 'Profile',     icon: '👤', label: 'Profile' },
 ];
 
-// ── Single animated tab item ───────────────────────────────────────────────
-// ALL animations now use useNativeDriver:true — no more mixed-driver crash.
-// The dot "width expand" effect is replaced by scaleX on a fixed-width pill,
-// which is 100% native-driver compatible.
+// ── Single animated tab item ──────────────────────────────
 function TabItem({ tab, isActive, onPress }) {
   const { T } = useTheme();
 
-  // ── Stable animated value refs ────────────────────────────────────────
-  const scale   = React.useRef(new Animated.Value(isActive ? 1.08 : 1)).current;
-  const labelO  = React.useRef(new Animated.Value(isActive ? 1 : 0)).current;
-  const labelY  = React.useRef(new Animated.Value(isActive ? 0 : 4)).current;
-  // Dot: opacity + scaleX (native-driver OK — no width mutation)
-  const dotO    = React.useRef(new Animated.Value(isActive ? 1 : 0)).current;
-  const dotSX   = React.useRef(new Animated.Value(isActive ? 1 : 0.2)).current;
+  // Animated values — stable refs, never recreated
+  const scale  = React.useRef(new Animated.Value(isActive ? 1.08 : 1)).current;
+  const labelO = React.useRef(new Animated.Value(isActive ? 1 : 0)).current;
+  const labelY = React.useRef(new Animated.Value(isActive ? 0 : 4)).current;
+  const dotO   = React.useRef(new Animated.Value(isActive ? 1 : 0)).current;
+  const dotW   = React.useRef(new Animated.Value(isActive ? 18 : 4)).current;
 
   React.useEffect(() => {
     if (isActive) {
-      // Icon bounce
+      // Bounce the icon up on activation
       Animated.sequence([
         Animated.spring(scale, {
           toValue: 1.26,
@@ -87,33 +73,15 @@ function TabItem({ tab, isActive, onPress }) {
         }),
       ]).start();
 
-      // Label + dot animate in — all native
+      // Label slides up into view
       Animated.parallel([
-        Animated.spring(labelY, {
-          toValue: 0,
-          useNativeDriver: true,
-          speed: 28,
-          bounciness: 4,
-        }),
-        Animated.timing(labelO, {
-          toValue: 1,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(dotO, {
-          toValue: 1,
-          duration: 160,
-          useNativeDriver: true,
-        }),
-        Animated.spring(dotSX, {
-          toValue: 1,
-          useNativeDriver: true,
-          speed: 30,
-          bounciness: 6,
-        }),
+        Animated.spring(labelY, { toValue: 0,  useNativeDriver: true, speed: 28, bounciness: 4 }),
+        Animated.timing(labelO, { toValue: 1,  duration: 220, useNativeDriver: true }),
+        Animated.timing(dotO,   { toValue: 1,  duration: 160, useNativeDriver: true }),
+        Animated.spring(dotW,   { toValue: 18, useNativeDriver: false, speed: 30, bounciness: 6 }),
       ]).start();
     } else {
-      // Icon shrinks back
+      // Icon shrinks back to rest
       Animated.spring(scale, {
         toValue: 1,
         useNativeDriver: true,
@@ -121,30 +89,12 @@ function TabItem({ tab, isActive, onPress }) {
         bounciness: 0,
       }).start();
 
-      // Label + dot animate out — all native
+      // Label fades + slides down out of view
       Animated.parallel([
-        Animated.timing(labelO, {
-          toValue: 0,
-          duration: 130,
-          useNativeDriver: true,
-        }),
-        Animated.spring(labelY, {
-          toValue: 4,
-          useNativeDriver: true,
-          speed: 30,
-          bounciness: 0,
-        }),
-        Animated.timing(dotO, {
-          toValue: 0,
-          duration: 130,
-          useNativeDriver: true,
-        }),
-        Animated.spring(dotSX, {
-          toValue: 0.2,
-          useNativeDriver: true,
-          speed: 30,
-          bounciness: 0,
-        }),
+        Animated.timing(labelO, { toValue: 0, duration: 130, useNativeDriver: true }),
+        Animated.spring(labelY, { toValue: 4, useNativeDriver: true, speed: 30, bounciness: 0 }),
+        Animated.timing(dotO,   { toValue: 0, duration: 130, useNativeDriver: true }),
+        Animated.spring(dotW,   { toValue: 4, useNativeDriver: false, speed: 30, bounciness: 0 }),
       ]).start();
     }
   }, [isActive]);
@@ -153,7 +103,7 @@ function TabItem({ tab, isActive, onPress }) {
     <Pressable
       onPress={() => {
         if (!isActive) {
-          try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (_) {}
+          try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
           onPress();
         }
       }}
@@ -175,31 +125,22 @@ function TabItem({ tab, isActive, onPress }) {
           {tab?.icon}
         </Animated.Text>
 
-        {/* ── Label (animated in/out) ── */}
+        {/* ── Label — only rendered for active tab (animated in/out) ── */}
         <Animated.Text
           style={[
             st.tabLabel,
-            {
-              color: '#4F8CFF',
-              opacity: labelO,
-              transform: [{ translateY: labelY }],
-            },
+            { color: '#4F8CFF', opacity: labelO, transform: [{ translateY: labelY }] },
           ]}
           numberOfLines={1}
         >
           {tab?.label}
         </Animated.Text>
 
-        {/* ── Dot indicator: fixed width pill, scaleX animates 0.2 → 1 ── */}
-        {/*    This replaces the old width animation that required JS driver  */}
+        {/* ── Dot indicator — expands into pill when active ── */}
         <Animated.View
           style={[
             st.tabDot,
-            {
-              backgroundColor: '#4F8CFF',
-              opacity: dotO,
-              transform: [{ scaleX: dotSX }],
-            },
+            { opacity: dotO, width: dotW, backgroundColor: '#4F8CFF' },
           ]}
         />
       </View>
@@ -207,7 +148,7 @@ function TabItem({ tab, isActive, onPress }) {
   );
 }
 
-// ── Bottom Tab Bar ─────────────────────────────────────────────────────────
+// ── Bottom Tab Bar container ──────────────────────────────
 function TabBar({ state, navigation }) {
   const { T } = useTheme();
 
@@ -234,13 +175,13 @@ function TabBar({ state, navigation }) {
   );
 }
 
-// ── HomeStack ──────────────────────────────────────────────────────────────
+// ── HomeStack — Dashboard + drill-in screens ──────────────
 function HomeStack() {
   const { T } = useTheme();
   const hdr = {
-    headerStyle:         { backgroundColor: T.bg },
-    headerTintColor:     T.t1,
-    headerTitleStyle:    { fontWeight: '700', fontSize: 17 },
+    headerStyle:      { backgroundColor: T.bg },
+    headerTintColor:  T.t1,
+    headerTitleStyle: { fontWeight: '700', fontSize: 17 },
     headerShadowVisible: false,
   };
   return (
@@ -256,13 +197,10 @@ function HomeStack() {
   );
 }
 
-// ── Main Tabs ──────────────────────────────────────────────────────────────
+// ── Main Tabs ─────────────────────────────────────────────
 function MainTabs() {
   return (
-    <Tab.Navigator
-      tabBar={p => <TabBar {...p} />}
-      screenOptions={{ headerShown: false }}
-    >
+    <Tab.Navigator tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false }}>
       <Tab.Screen name="Home"        component={HomeStack}         />
       <Tab.Screen name="Money"       component={MoneyScreen}       />
       <Tab.Screen name="Growth"      component={GrowthScreen}      />
@@ -272,7 +210,7 @@ function MainTabs() {
   );
 }
 
-// ── Auto smart notifications on launch ────────────────────────────────────
+// ── Auto smart notifications on launch ────────────────────
 function NotifTrigger() {
   const { state } = useApp();
   useEffect(() => {
@@ -284,7 +222,7 @@ function NotifTrigger() {
   return null;
 }
 
-// ── Daily login trigger ────────────────────────────────────────────────────
+// Fires DAILY_LOGIN once per session on mount
 function DailyLoginTrigger() {
   const { dispatch } = useApp();
   React.useEffect(() => {
@@ -293,28 +231,15 @@ function DailyLoginTrigger() {
   return null;
 }
 
-// ── Themed app root ────────────────────────────────────────────────────────
 function ThemedApp() {
   const { T, mode } = useTheme();
   return (
     <>
-      <StatusBar
-        barStyle={mode === 'light' ? 'dark-content' : 'light-content'}
-        backgroundColor={T.bg}
-      />
-      <NavigationContainer
-        theme={{
-          dark: mode !== 'light',
-          colors: {
-            primary:      '#4F8CFF',
-            background:   T.bg,
-            card:         T.l1,
-            text:         T.t1,
-            border:       T.border,
-            notification: '#EF4444',
-          },
-        }}
-      >
+      <StatusBar barStyle={mode === 'light' ? 'dark-content' : 'light-content'} backgroundColor={T.bg} />
+      <NavigationContainer theme={{
+        dark: mode !== 'light',
+        colors: { primary: '#4F8CFF', background: T.bg, card: T.l1, text: T.t1, border: T.border, notification: '#EF4444' },
+      }}>
         <NotifTrigger />
         <DailyLoginTrigger />
         <MainTabs />
@@ -323,17 +248,11 @@ function ThemedApp() {
   );
 }
 
-// ── App root ───────────────────────────────────────────────────────────────
 export default function App() {
   const [showSplash, setShowSplash] = React.useState(true);
   const [fontsLoaded, fontError] = useFonts({
-    Syne_500Medium,
-    Syne_600SemiBold,
-    Syne_700Bold,
-    Syne_800ExtraBold,
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_600SemiBold,
+    Syne_500Medium, Syne_600SemiBold, Syne_700Bold, Syne_800ExtraBold,
+    DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold,
   });
 
   const onLayout = useCallback(async () => {
@@ -361,57 +280,61 @@ export default function App() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────
 const st = StyleSheet.create({
+  // Bar container
   bar: {
-    flexDirection:    'row',
-    borderTopWidth:   1,
-    paddingTop:       10,
-    paddingBottom:    Platform.OS === 'ios' ? 28 : 12,
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
     paddingHorizontal: 4,
-    shadowColor:      '#000',
-    shadowOffset:     { width: 0, height: -4 },
-    shadowOpacity:    0.10,
-    shadowRadius:     16,
-    elevation:        24,
+    // Glass shadow lifting up from bottom
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
+    elevation: 24,
   },
 
+  // Each tab takes equal share
   tabItem: {
-    flex:            1,
-    alignItems:      'center',
-    justifyContent:  'center',
-    minHeight:       52,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
   },
 
+  // Inner column: icon → label → dot
   tabInner: {
-    alignItems:      'center',
-    justifyContent:  'center',
-    gap:             2,
-    minHeight:       48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    minHeight: 48,
   },
 
+  // Icon: emoji rendered at base size, scale applied via Animated
   tabIcon: {
-    fontSize:   22,
+    fontSize: 22,
     lineHeight: 28,
-    textAlign:  'center',
+    textAlign: 'center',
   },
 
+  // Label: only visible when active (opacity animated)
   tabLabel: {
-    fontSize:    11,
-    fontWeight:  '700',
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 0.1,
-    textAlign:   'center',
-    // Fixed height keeps layout stable while opacity animates
-    height:      14,
-    lineHeight:  14,
+    textAlign: 'center',
+    // Fixed height so layout doesn't jump when it fades in
+    height: 14,
+    lineHeight: 14,
   },
 
-  // Fixed-size pill — scaleX transforms 0.2→1 instead of width mutation
-  // This is the key fix: width is static so no JS driver is needed
+  // Dot indicator: tiny when inactive, pill when active (width animated)
   tabDot: {
-    width:        18,
-    height:       3,
+    height: 3,
     borderRadius: 99,
-    marginTop:    2,
+    marginTop: 2,
   },
 });

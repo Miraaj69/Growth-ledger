@@ -1,6 +1,7 @@
 // MoneyScreen.js — Premium redesign matching reference images exactly
 // Features: Investor Wisdom, improved calendar with Present/Absent/Leave,
 // rich Income Sources, Attendance Insight, Auto-Adjust toggle
+// DebtTab: imported from DebtManagement.js (full premium system)
 
 import React, { useState, useMemo, memo, useCallback, useRef, useEffect } from 'react';
 import {
@@ -21,6 +22,7 @@ import {
 } from './UI';
 import { DonutChart } from './Charts';
 import { SipTab } from './SipScreen';
+import { DebtTab } from './DebtManagement';
 
 // ─────────────────────────────────────────────────────────
 // INVESTOR WISDOM DATA
@@ -1436,87 +1438,8 @@ const ExpensesTab = memo(({ s, dispatch }) => {
 // ─────────────────────────────────────────────────────────
 // DEBT TAB
 // ─────────────────────────────────────────────────────────
-const DebtTab = memo(({ s, dispatch }) => {
-  const { T } = useTheme();
-  const d = useMemo(() => deriveState(s), [s]);
-  if ((s.debts || []).length === 0) return (
-    <Empty icon="🏦" title="No debts tracked"
-      sub="Add your loans or credit cards to plan smart repayment."
-      cta="+ Add Debt"
-      onCta={() => dispatch({ type: 'ADD_DEBT', debt: { name: 'New Loan', amount: 0, remaining: 0, emi: 0, rate: 0, dueDate: 5 } })} />
-  );
-  const highRate = (s.debts || []).reduce((a, x) => Number(x?.rate || 0) > Number(a?.rate || 0) ? x : a, s.debts[0]);
-  const smallest = (s.debts || []).reduce((a, x) => Number(x?.remaining || 0) < Number(a?.remaining || 0) ? x : a, s.debts[0]);
-  return (
-    <View>
-      <Card style={{ marginBottom: 12 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-          <View>
-            <Text style={{ fontSize: 12, color: T.t3, marginBottom: 3 }}>Total Outstanding</Text>
-            <Text style={{ fontSize: 28, fontWeight: '800', color: '#EF4444' }}>{fmt(d.debtTotal)}</Text>
-          </View>
-          <Chip label="Active" color="#EF4444" dot />
-        </View>
-        {highRate && smallest && (
-          <View style={{ flexDirection: 'row', gap: 9, marginBottom: 12 }}>
-            {[
-              { label: '🔥 Avalanche', sub: 'Max interest', name: highRate.name || '', color: '#F59E0B' },
-              { label: '❄️ Snowball', sub: 'Quick win', name: smallest.name || '', color: '#4F8CFF' },
-            ].map(m => (
-              <View key={m.label} style={{ flex: 1, backgroundColor: T.l2, borderRadius: R.md, padding: SP.sm + 4, borderWidth: 1, borderColor: m.color + '25' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: m.color, marginBottom: 3 }}>{m.label}</Text>
-                <Text style={{ fontWeight: '600', fontSize: 13, color: T.t1 }} numberOfLines={1}>{m.name}</Text>
-                <Text style={{ fontSize: 10, color: T.t3, marginTop: 2 }}>{m.sub}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </Card>
-      {(s.debts || []).map((dbt, i) => {
-        const paid = (Number(dbt?.amount) || 0) - (Number(dbt?.remaining) || 0);
-        const months = debtMonths(dbt?.remaining || 0, dbt?.emi || 1);
-        const extraM = debtMonths(dbt?.remaining || 0, (dbt?.emi || 0) + 2000);
-        const intLeft = Math.round((Number(dbt?.remaining) || 0) * (Number(dbt?.rate) || 0) / 100 * months / 12);
-        return (
-          <Card key={dbt?.id || i} style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: T.t1 }}>{dbt?.name || 'Loan'}</Text>
-                <View style={{ flexDirection: 'row', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
-                  <Chip label={`${dbt?.rate || 0}% p.a.`} color={Number(dbt?.rate || 0) >= 24 ? '#EF4444' : '#F59E0B'} sm />
-                  {dbt?.dueDate && <Chip label={`Due: ${dbt.dueDate}th`} color="#F59E0B" sm />}
-                </View>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 22, fontWeight: '800', color: '#EF4444' }}>{fmt(dbt?.remaining || 0)}</Text>
-                <Text style={{ fontSize: 11, color: T.t3, marginTop: 1 }}>remaining</Text>
-              </View>
-            </View>
-            <Bar value={paid} total={Math.max(dbt?.amount || 1, 1)} color="#EF4444" h={5} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 7, marginBottom: 12 }}>
-              <Text style={{ fontSize: 11, color: T.t3 }}>{safePct(paid, dbt?.amount || 1)}% cleared</Text>
-              <Text style={{ fontSize: 11, color: T.t3 }}>{months} months left</Text>
-            </View>
-            <StatRow label="Monthly EMI" value={fmt(dbt?.emi || 0)} />
-            <StatRow label="Amount Paid" value={fmt(paid)} color="#22C55E" />
-            <StatRow label="Interest Remaining" value={fmt(intLeft)} color="#EF4444" last />
-            {(dbt?.emi || 0) > 0 && (
-              <View style={{ backgroundColor: '#22C55E10', borderRadius: R.md, padding: SP.sm + 2, borderWidth: 1, borderColor: '#22C55E28', flexDirection: 'row', gap: 7, marginTop: 8 }}>
-                <Text style={{ fontSize: 14 }}>🚀</Text>
-                <Text style={{ color: '#22C55E', fontSize: 12, lineHeight: 18, flex: 1 }}>
-                  Pay ₹2K extra/mo → clear in <Text style={{ fontWeight: '700' }}>{extraM} months</Text> instead of {months}
-                </Text>
-              </View>
-            )}
-            <Pressable onPress={() => Alert.alert('Remove debt?', `Remove ${dbt?.name}?`, [{ text: 'Cancel' }, { text: 'Remove', style: 'destructive', onPress: () => dispatch({ type: 'DEL_DEBT', idx: i }) }])} style={{ marginTop: 10 }}>
-              <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '600' }}>Remove debt</Text>
-            </Pressable>
-          </Card>
-        );
-      })}
-    </View>
-  );
-});
+// DebtTab is now imported from DebtManagement.js — full premium system
+// See DebtManagement.js for complete implementation
 
 // ─────────────────────────────────────────────────────────
 // TAB DEFINITIONS
