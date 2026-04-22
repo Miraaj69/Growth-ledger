@@ -1,8 +1,8 @@
-// HomeScreen.js — Premium Redesign matching reference image exactly
-// Design: Clean fintech UI (CRED / Groww / INDmoney style)
-// Light theme: white cards, blue hero, clean typography
+// HomeScreen.js — Premium Redesign v12
+// Design: CRED / Groww / Apple Finance — clean, layered, depth-first
+// FIXES: added `memo` to React import (was causing ReferenceError crash)
 
-import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect, memo } from 'react';
 import {
   ScrollView, View, Text, Pressable,
   StyleSheet, Animated, Dimensions, Image,
@@ -46,7 +46,7 @@ const generateAIInsights = (s, d) => {
     insights.push({ icon: '📈', msg: '₹500/mo in Nifty 50 = wealth over time. Start a SIP today.', color: '#4F8CFF', level: 'info' });
 
   if (debtTotal > salary * 6)
-    insights.push({ icon: '🔥', msg: `High debt — pay extra ₹2K/mo to clear faster`, color: '#EF4444', level: 'danger' });
+    insights.push({ icon: '🔥', msg: 'High debt — pay extra ₹2K/mo to clear faster', color: '#EF4444', level: 'danger' });
 
   return insights.slice(0, 4);
 };
@@ -66,7 +66,6 @@ function Avatar({ uri }) {
   if (uri) {
     return <Image source={{ uri }} style={st.avatar} />;
   }
-  // Default apple-style avatar emoji
   return (
     <View style={st.avatarDefault}>
       <Text style={{ fontSize: 26 }}>🧑‍💼</Text>
@@ -83,30 +82,31 @@ function HeroCard({ d, s }) {
   const monthProg = safePct(today, daysInMonth);
 
   const heroMsg = (() => {
-    if (d.salary === 0) return '⚡  Add your salary to start tracking earnings';
-    if (d.lostSalary > 0) return `⚠️  ₹${Math.round(d.lostSalary).toLocaleString('en-IN')} lost — reduce absences to maximise`;
-    return `📈  On track to earn ${fmtShort(d.earnedSalary)} this month`;
+    if (d.salary === 0) return 'Add your salary to start tracking earnings';
+    if (d.lostSalary > 0) return `₹${Math.round(d.lostSalary).toLocaleString('en-IN')} lost — reduce absences to maximise`;
+    return `On track to earn ${fmtShort(d.earnedSalary)} this month`;
   })();
 
   const barAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(barAnim, { toValue: monthProg, duration: 1000, useNativeDriver: false }).start();
+    Animated.timing(barAnim, { toValue: monthProg, duration: 1200, useNativeDriver: false }).start();
   }, [monthProg]);
   const barW = barAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
 
   return (
     <LinearGradient
-      colors={['#1a3a8c', '#2355c5', '#2e6be6']}
+      colors={['#0f2460', '#1a3a8c', '#2355c5', '#2e6be6']}
       style={st.heroCard}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      {/* Decorative circle */}
-      <View style={st.heroDeco} />
+      {/* Decorative circles */}
+      <View style={st.heroDeco1} />
+      <View style={st.heroDeco2} />
 
       {/* Wallet icon top-right */}
       <View style={st.heroWalletIcon}>
-        <Text style={{ fontSize: 22, opacity: 0.35 }}>👛</Text>
+        <Text style={{ fontSize: 22, opacity: 0.3 }}>👛</Text>
       </View>
 
       <Text style={st.heroLabel}>EARNED THIS MONTH</Text>
@@ -138,8 +138,8 @@ function HeroCard({ d, s }) {
 
       {/* Alert message */}
       <View style={st.heroAlert}>
-        <Text style={{ fontSize: 12, marginRight: 6 }}>⚠️</Text>
-        <Text style={st.heroAlertText} numberOfLines={1}>{heroMsg.replace(/^⚠️\s*/, '').replace(/^📈\s*/, '').replace(/^⚡\s*/, '')}</Text>
+        <Text style={{ fontSize: 12, marginRight: 6 }}>📊</Text>
+        <Text style={st.heroAlertText} numberOfLines={1}>{heroMsg}</Text>
       </View>
     </LinearGradient>
   );
@@ -167,7 +167,6 @@ function ScorePersonalityRow({ score, personality }) {
 
       {/* Personality */}
       <View style={[st.halfCard, { borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden' }]}>
-        {/* Decorative brain icon */}
         <View style={st.personalityDeco}>
           <Text style={{ fontSize: 44, opacity: 0.08 }}>🧠</Text>
         </View>
@@ -188,7 +187,6 @@ function NetWorthCard({ d }) {
     <View style={st.netWorthCard}>
       <Text style={st.sectionTitle}>NET WORTH OVERVIEW</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-        {/* Left: Net Worth */}
         <View style={st.netWorthLeft}>
           <View style={st.walletBadge}>
             <Text style={{ fontSize: 20 }}>👛</Text>
@@ -198,9 +196,7 @@ function NetWorthCard({ d }) {
             <Text style={st.netWorthSub}>Net Worth</Text>
           </View>
         </View>
-        {/* Divider */}
         <View style={st.netDivider} />
-        {/* Right: Income */}
         <View style={{ flex: 1, paddingLeft: 14 }}>
           <Text style={st.netIncomeAmt}>{fmt(d.totalIncome)}</Text>
           <Text style={st.netIncomeSub}>This Month Income</Text>
@@ -208,7 +204,6 @@ function NetWorthCard({ d }) {
         </View>
       </View>
 
-      {/* Bottom stats */}
       <View style={[st.netStatsRow, { borderTopColor: '#e2e8f0' }]}>
         {[
           { l: 'Assets', v: fmt(d.totalAssets), c: '#0f172a' },
@@ -232,7 +227,6 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
 
   return (
     <View style={st.row2}>
-      {/* Next Action */}
       <Pressable
         style={[st.halfCard, { borderColor: '#e2e8f0', gap: 8 }]}
         onPress={() => navigation?.navigate?.(action.screen || 'Goals')}
@@ -245,19 +239,14 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
         </View>
         <Text style={st.actionTitle}>{action.title || 'Start a SIP today'}</Text>
         <Text style={st.actionDesc} numberOfLines={2}>{action.desc || '₹500/mo in Nifty 50 = wealth over time.'}</Text>
-
-        {/* Chevron circle */}
         <View style={st.actionChevron}>
           <Text style={{ fontSize: 14, color: action.color || '#22C55E' }}>›</Text>
         </View>
-
-        {/* CTA */}
         <Pressable style={[st.actionCta, { backgroundColor: (action.color || '#22C55E') + '18', borderColor: (action.color || '#22C55E') + '30' }]}>
           <Text style={[st.actionCtaText, { color: action.color || '#22C55E' }]}>Start Now →</Text>
         </Pressable>
       </Pressable>
 
-      {/* AI Insight */}
       <View style={[st.halfCard, { borderColor: '#e2e8f0', gap: 8 }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -277,7 +266,6 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
           {firstInsight ? `${firstInsight.icon} ${firstInsight.msg}` : '💡 Tip: Add your salary to unlock smarter insights.'}
         </Text>
 
-        {/* CTA */}
         <Pressable
           style={[st.insightCta, { backgroundColor: '#A78BFA18', borderColor: '#A78BFA30' }]}
           onPress={() => navigation?.navigate?.('Money')}
@@ -295,7 +283,6 @@ function ExpenseGoalsRow({ s, d, navigation }) {
 
   return (
     <View style={st.row2}>
-      {/* Expense Split */}
       <View style={[st.halfCard, { borderColor: '#e2e8f0' }]}>
         <Text style={st.sectionTitle}>EXPENSE SPLIT</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
@@ -322,7 +309,6 @@ function ExpenseGoalsRow({ s, d, navigation }) {
             ))}
           </View>
         </View>
-        {/* Insight pill */}
         <View style={st.expInsightPill}>
           <Text style={{ fontSize: 10 }}>✅</Text>
           <Text style={st.expInsightText} numberOfLines={2}>
@@ -331,12 +317,10 @@ function ExpenseGoalsRow({ s, d, navigation }) {
         </View>
       </View>
 
-      {/* Financial Goals */}
       <View style={[st.halfCard, { borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }]}>
         <Text style={[st.sectionTitle, { alignSelf: 'flex-start' }]}>FINANCIAL GOALS</Text>
         {goals.length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 16, gap: 8 }}>
-            {/* Target emoji with sparkles */}
             <Text style={{ fontSize: 36 }}>🎯</Text>
             <Text style={st.emptyGoalTitle}>No goals yet</Text>
             <Text style={st.emptyGoalSub}>Set your first goal and track your progress.</Text>
@@ -371,7 +355,6 @@ function AchievementsSnapshotRow({ achievements, d }) {
   const nextUnlocked = achievements.find(a => !a.unlocked);
   return (
     <View style={st.row2}>
-      {/* Achievements */}
       <View style={[st.halfCard, { borderColor: '#e2e8f0' }]}>
         <Text style={st.sectionTitle}>ACHIEVEMENTS</Text>
         {nextUnlocked && (
@@ -385,7 +368,6 @@ function AchievementsSnapshotRow({ achievements, d }) {
         <Text style={{ fontSize: 10, color: '#94A3B8', marginBottom: 8 }}>
           {achievements.filter(a => a.unlocked).length} / {achievements.length} unlocked
         </Text>
-        {/* Badge row */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {achievements.map((a, i) => (
             <View key={i} style={{ alignItems: 'center' }}>
@@ -399,13 +381,11 @@ function AchievementsSnapshotRow({ achievements, d }) {
             </View>
           ))}
         </ScrollView>
-        {/* XP progress */}
         <View style={{ marginTop: 8 }}>
           <Bar value={achievements.filter(a => a.unlocked).length} total={achievements.length} color="#F59E0B" h={4} />
         </View>
       </View>
 
-      {/* Financial Snapshot */}
       <View style={[st.halfCard, { borderColor: '#e2e8f0' }]}>
         <Text style={st.sectionTitle}>FINANCIAL SNAPSHOT</Text>
         <View style={{ gap: 10, marginTop: 10 }}>
@@ -425,23 +405,19 @@ function AchievementsSnapshotRow({ achievements, d }) {
   );
 }
 
-// ─── Earnings Trend — Animated Toggle + Dual Mode Chart ──
+// ─── Earnings Trend ───────────────────────────────────────
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEK_LABELS  = ['W1', 'W2', 'W3', 'W4'];
 const TOGGLE_TABS  = ['Monthly', 'Weekly'];
 
-// Derive weekly buckets from monthly salary and per-day rate
 function buildWeeklyBars(s, d) {
   const salary   = safeNum(d.earnedSalary) || safeNum(d.salary);
   const perDay   = safeNum(d.perDay);
-  // Spread salary across 4 weeks with realistic variation
   const base = perDay > 0 ? perDay * 5 : salary / 4;
   const seed = salary > 0 ? salary : 0;
   return WEEK_LABELS.map((l, i) => ({
     l,
-    v: seed > 0
-      ? Math.round(base * [1.05, 0.95, 1.10, 0.90][i])
-      : 0,
+    v: seed > 0 ? Math.round(base * [1.05, 0.95, 1.10, 0.90][i]) : 0,
   }));
 }
 
@@ -453,16 +429,15 @@ function buildMonthlyBars(s) {
     .slice(-6);
 }
 
-// Inline SVG-based line chart (smooth, animated, no deps)
+// ── Line Chart — pure SVG, no extra deps ──────────────────
 const LineChart = memo(({ data, color, height }) => {
-  const W_CHART = Dimensions.get('window').width - 64; // card padding
+  const W_CHART = Dimensions.get('window').width - 64;
   const H       = height;
   const PAD_V   = 8;
   const PAD_H   = 12;
   const vals    = data.map(d => d.v);
   const maxVal  = Math.max(...vals, 1);
 
-  // Compute (x, y) for each point
   const pts = data.map((d, i) => ({
     x: PAD_H + (i / Math.max(data.length - 1, 1)) * (W_CHART - PAD_H * 2),
     y: PAD_V + (1 - d.v / maxVal) * (H - PAD_V * 2 - 18),
@@ -470,7 +445,6 @@ const LineChart = memo(({ data, color, height }) => {
     l: d.l,
   }));
 
-  // Build smooth bezier path
   const path = pts.reduce((acc, pt, i) => {
     if (i === 0) return `M ${pt.x},${pt.y}`;
     const prev = pts[i - 1];
@@ -478,37 +452,21 @@ const LineChart = memo(({ data, color, height }) => {
     return `${acc} C ${cpx},${prev.y} ${cpx},${pt.y} ${pt.x},${pt.y}`;
   }, '');
 
-  // Fill path (close below the line)
   const fillPath = pts.length > 0
     ? `${path} L ${pts[pts.length - 1].x},${H - 18} L ${pts[0].x},${H - 18} Z`
     : '';
 
-  // Animated progress
-  const progress = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    progress.setValue(0);
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: false,
-    }).start();
-  }, [data]);
-
-  // We'll use opacity to animate the chart reveal (no SVG clip-path in RN)
   const chartOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     chartOpacity.setValue(0);
-    Animated.timing(chartOpacity, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(chartOpacity, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, [data]);
 
-  const { Svg, Path, Defs, LinearGradient: SvgGrad, Stop, Circle: SvgCircle, Line } =
-    require('react-native-svg');
-
-  const lastPt = pts[pts.length - 1];
+  const {
+    Svg, Path, Defs,
+    LinearGradient: SvgGrad, Stop,
+    Circle: SvgCircle, Line,
+  } = require('react-native-svg');
 
   return (
     <Animated.View style={{ opacity: chartOpacity }}>
@@ -520,7 +478,6 @@ const LineChart = memo(({ data, color, height }) => {
           </SvgGrad>
         </Defs>
 
-        {/* Horizontal grid lines */}
         {[0.25, 0.5, 0.75].map((pct, i) => {
           const gy = PAD_V + pct * (H - PAD_V * 2 - 18);
           return (
@@ -535,10 +492,8 @@ const LineChart = memo(({ data, color, height }) => {
           );
         })}
 
-        {/* Fill area */}
         {fillPath ? <Path d={fillPath} fill="url(#fill)" /> : null}
 
-        {/* Line */}
         {path ? (
           <Path
             d={path}
@@ -550,7 +505,6 @@ const LineChart = memo(({ data, color, height }) => {
           />
         ) : null}
 
-        {/* Data points */}
         {pts.map((pt, i) => (
           <SvgCircle
             key={i}
@@ -562,14 +516,8 @@ const LineChart = memo(({ data, color, height }) => {
             strokeWidth={i === pts.length - 1 ? 2.5 : 1.5}
           />
         ))}
-
-        {/* X-axis labels */}
-        {pts.map((pt, i) => (
-          <SvgCircle key={`lbl-${i}`} cx={0} cy={0} r={0} fill="transparent" />
-        ))}
       </Svg>
 
-      {/* X-axis labels rendered in RN (better font control) */}
       <View style={{ flexDirection: 'row', paddingHorizontal: PAD_H, marginTop: -4 }}>
         {pts.map((pt, i) => (
           <Text
@@ -591,51 +539,28 @@ const LineChart = memo(({ data, color, height }) => {
 });
 
 function EarningsTrendCard({ s, d }) {
-  const [viewMode, setViewMode] = useState('monthly'); // 'monthly' | 'weekly'
-
-  // Animated pill slide
-  const slideAnim = useRef(new Animated.Value(0)).current; // 0 = Monthly, 1 = Weekly
-
-  // Chart cross-fade
+  const [viewMode, setViewMode] = useState('monthly');
+  const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim  = useRef(new Animated.Value(1)).current;
 
   const handleToggle = useCallback((mode) => {
     if (mode === viewMode) return;
-
-    // Fade out → switch → fade in
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => {
+    Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
       setViewMode(mode);
       Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: mode === 'monthly' ? 0 : 1,
-          useNativeDriver: false,
-          speed: 28,
-          bounciness: 0,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
+        Animated.spring(slideAnim, { toValue: mode === 'monthly' ? 0 : 1, useNativeDriver: false, speed: 28, bounciness: 0 }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
     });
   }, [viewMode]);
 
-  // Build chart data based on mode
   const chartData = useMemo(() => {
     if (viewMode === 'weekly') return buildWeeklyBars(s, d);
     return buildMonthlyBars(s);
   }, [viewMode, s, d]);
 
-  // Summary values
   const ytd = useMemo(() =>
-    (s.monthlyData || [])
-      .slice(0, (s.currentMonth || 0) + 1)
-      .reduce((a, v) => a + (Number(v) || 0), 0),
+    (s.monthlyData || []).slice(0, (s.currentMonth || 0) + 1).reduce((a, v) => a + (Number(v) || 0), 0),
     [s.monthlyData, s.currentMonth]
   );
 
@@ -646,40 +571,29 @@ function EarningsTrendCard({ s, d }) {
 
   const summaryValue  = viewMode === 'monthly' ? ytd : weeklyTotal;
   const summaryLabel  = viewMode === 'monthly' ? 'YTD' : 'This Month';
-  const activeBarData = viewMode === 'monthly'
-    ? chartData[chartData.length - 1]
-    : chartData[chartData.length - 1];
-
+  const activeBarData = chartData[chartData.length - 1];
   const currentMonthStr = `${MONTH_LABELS[s.currentMonth || 0]} ${s.currentYear || new Date().getFullYear()}`;
   const activeLabel = viewMode === 'monthly' ? currentMonthStr : 'Week 4';
   const activeValue = activeBarData?.v > 0 ? fmt(activeBarData.v) : '₹0';
 
-  // Pill slider interpolation
-  const TOGGLE_W = 160; // total toggle width (matches style)
+  const TOGGLE_W = 160;
   const PILL_W   = TOGGLE_W / 2 - 4;
-  const pillLeft = slideAnim.interpolate({
-    inputRange:  [0, 1],
-    outputRange: [2, PILL_W + 4],
-  });
+  const pillLeft = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [2, PILL_W + 4] });
 
   const hasData = chartData.some(b => b.v > 0);
 
   return (
     <View style={st.trendCard}>
-      {/* ── Header Row ── */}
       <View style={st.trendHeader}>
         <View>
           <Text style={st.sectionTitle}>EARNINGS TREND</Text>
-          {/* Summary value animates per mode */}
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 4 }}>
             <Text style={st.trendYtdVal}>{fmtShort(summaryValue)}</Text>
             <Text style={st.trendYtdLabel}>{summaryLabel}</Text>
           </View>
         </View>
 
-        {/* ── Animated Toggle Pill ── */}
         <View style={st.trendToggleWrap}>
-          {/* Sliding background pill */}
           <Animated.View style={[st.trendPill, { left: pillLeft, width: PILL_W }]} />
           {TOGGLE_TABS.map((tab, idx) => {
             const isActive = viewMode === tab.toLowerCase();
@@ -698,14 +612,9 @@ function EarningsTrendCard({ s, d }) {
         </View>
       </View>
 
-      {/* ── Chart Area ── */}
       <Animated.View style={{ opacity: fadeAnim, marginTop: 16 }}>
         {hasData ? (
-          <LineChart
-            data={chartData}
-            color="#4F8CFF"
-            height={90}
-          />
+          <LineChart data={chartData} color="#4F8CFF" height={90} />
         ) : (
           <View style={st.trendEmpty}>
             <Text style={{ fontSize: 28, marginBottom: 6 }}>📊</Text>
@@ -718,7 +627,6 @@ function EarningsTrendCard({ s, d }) {
         )}
       </Animated.View>
 
-      {/* ── Footer: active period + value ── */}
       {hasData && (
         <View style={st.trendFooter}>
           <View style={st.trendFooterDot} />
@@ -733,9 +641,9 @@ function EarningsTrendCard({ s, d }) {
 // ─── Quick Tools Grid ─────────────────────────────────────
 function QuickToolsGrid({ navigation }) {
   const tools = [
-    { icon: '🎯', label: 'Goal Planner', screen: 'Goals', color: '#EF4444' },
-    { icon: '📊', label: 'Simulator', screen: 'Simulator', color: '#4F8CFF' },
-    { icon: '💸', label: 'Cash Flow', screen: 'CashFlow', color: '#22C55E' },
+    { icon: '🎯', label: 'Goal Planner', screen: 'Goals',     color: '#EF4444' },
+    { icon: '📊', label: 'Simulator',    screen: 'Simulator', color: '#4F8CFF' },
+    { icon: '💸', label: 'Cash Flow',    screen: 'CashFlow',  color: '#22C55E' },
     { icon: '🧠', label: 'AI Decisions', screen: 'Decisions', color: '#A78BFA' },
   ];
   return (
@@ -778,43 +686,38 @@ export default function HomeScreen({ navigation }) {
     }
   }, [s]);
 
-  const score = useMemo(() => calcScore(s), [s]);
+  const score       = useMemo(() => calcScore(s),       [s]);
   const personality = useMemo(() => calcPersonality(s), [s]);
-  const action = useMemo(() => nextAction(s), [s]);
-  const aiInsights = useMemo(() => generateAIInsights(s, d), [s, d]);
+  const action      = useMemo(() => nextAction(s),      [s]);
+  const aiInsights  = useMemo(() => generateAIInsights(s, d), [s, d]);
 
   const achievements = useMemo(() => {
     const totalSaved = (s.goals || []).reduce((a, g) => a + (Number(g?.saved) || 0), 0);
-    const debtPaid = (s.debts || []).reduce((a, dbt) => a + ((Number(dbt?.amount) || 0) - (Number(dbt?.remaining) || 0)), 0);
+    const debtPaid   = (s.debts || []).reduce((a, dbt) => a + ((Number(dbt?.amount) || 0) - (Number(dbt?.remaining) || 0)), 0);
     return [
-      { icon: '🥇', label: 'Saver', unlocked: totalSaved >= 100000, color: '#F59E0B' },
-      { icon: '📈', label: 'Investor', unlocked: d.sipTotal > 0, color: '#22C55E' },
-      { icon: '💪', label: 'Debt Buster', unlocked: debtPaid >= 50000, color: '#4F8CFF' },
-      { icon: '🔥', label: 'Consistent', unlocked: d.present >= 20, color: '#EF4444' },
-      { icon: '👑', label: 'Elite', unlocked: score.total >= 85, color: '#F59E0B' },
-      { icon: '🎯', label: 'Planner', unlocked: (s.goals || []).length >= 3, color: '#14B8A6' },
+      { icon: '🥇', label: 'Saver',       unlocked: totalSaved >= 100000,           color: '#F59E0B' },
+      { icon: '📈', label: 'Investor',    unlocked: d.sipTotal > 0,                  color: '#22C55E' },
+      { icon: '💪', label: 'Debt Buster', unlocked: debtPaid >= 50000,               color: '#4F8CFF' },
+      { icon: '🔥', label: 'Consistent',  unlocked: d.present >= 20,                 color: '#EF4444' },
+      { icon: '👑', label: 'Elite',       unlocked: score.total >= 85,               color: '#F59E0B' },
+      { icon: '🎯', label: 'Planner',     unlocked: (s.goals || []).length >= 3,     color: '#14B8A6' },
     ];
   }, [s, d, score]);
 
-  // User greeting
-  const hour = new Date().getHours();
+  const hour     = new Date().getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
   const userName = s.userName || 'Miraj';
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F1F5F9' }}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 110 }}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+
         {/* ── HEADER ── */}
         <View style={st.header}>
-          {/* Left: Greeting */}
           <View style={{ flex: 1 }}>
             <Text style={st.greeting}>{greeting}, {userName} 👋</Text>
-            <Text style={st.greetingSub}>Let's grow your wealth 🚀</Text>
+            <Text style={st.greetingSub}>{"Let's grow your wealth 🚀"}</Text>
           </View>
-          {/* Right: Streak + Avatar */}
           <View style={{ alignItems: 'flex-end', gap: 8 }}>
             <StreakBadge streak={s.loginStreak || 1} />
             <Avatar uri={s.profileImage} />
@@ -824,57 +727,25 @@ export default function HomeScreen({ navigation }) {
         {/* ── DASHBOARD TITLE + MONTH PICKER ── */}
         <View style={st.dashRow}>
           <Text style={st.dashTitle}>Dashboard</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <MonthPicker
-              month={s.currentMonth || 0}
-              year={s.currentYear || new Date().getFullYear()}
-              onChange={(m, y) => set({ currentMonth: m, currentYear: y, attendance: new Set() })}
-            />
-          </View>
+          <MonthPicker
+            month={s.currentMonth || 0}
+            year={s.currentYear || new Date().getFullYear()}
+            onChange={(m, y) => set({ currentMonth: m, currentYear: y, attendance: new Set() })}
+          />
         </View>
 
-        {/* ── HERO EARNINGS CARD ── */}
-        <View style={st.section}>
-          <HeroCard d={d} s={s} />
-        </View>
+        {/* Sections */}
+        <View style={st.section}><HeroCard d={d} s={s} /></View>
+        <View style={st.section}><ScorePersonalityRow score={score} personality={personality} /></View>
+        <View style={st.section}><NetWorthCard d={d} /></View>
+        <View style={st.section}><ActionInsightRow action={action} aiInsights={aiInsights} navigation={navigation} /></View>
+        <View style={st.section}><ExpenseGoalsRow s={s} d={d} navigation={navigation} /></View>
+        <View style={st.section}><AchievementsSnapshotRow achievements={achievements} d={d} /></View>
+        <View style={st.section}><EarningsTrendCard s={s} d={d} /></View>
+        <View style={[st.section, { marginBottom: 0 }]}><QuickToolsGrid navigation={navigation} /></View>
 
-        {/* ── HEALTH SCORE + PERSONALITY ── */}
-        <View style={st.section}>
-          <ScorePersonalityRow score={score} personality={personality} />
-        </View>
-
-        {/* ── NET WORTH ── */}
-        <View style={st.section}>
-          <NetWorthCard d={d} />
-        </View>
-
-        {/* ── NEXT ACTION + AI INSIGHT ── */}
-        <View style={st.section}>
-          <ActionInsightRow action={action} aiInsights={aiInsights} navigation={navigation} />
-        </View>
-
-        {/* ── EXPENSE SPLIT + GOALS ── */}
-        <View style={st.section}>
-          <ExpenseGoalsRow s={s} d={d} navigation={navigation} />
-        </View>
-
-        {/* ── ACHIEVEMENTS + SNAPSHOT ── */}
-        <View style={st.section}>
-          <AchievementsSnapshotRow achievements={achievements} d={d} />
-        </View>
-
-        {/* ── EARNINGS TREND ── */}
-        <View style={st.section}>
-          <EarningsTrendCard s={s} d={d} />
-        </View>
-
-        {/* ── QUICK TOOLS ── */}
-        <View style={[st.section, { marginBottom: 0 }]}>
-          <QuickToolsGrid navigation={navigation} />
-        </View>
       </ScrollView>
 
-      {/* ── FAB ── */}
       <FABMenu navigation={navigation} />
     </View>
   );
@@ -883,24 +754,24 @@ export default function HomeScreen({ navigation }) {
 // ─── FAB ─────────────────────────────────────────────────
 function FABMenu({ navigation }) {
   const [open, setOpen] = useState(false);
-  const rot = useRef(new Animated.Value(0)).current;
+  const rot  = useRef(new Animated.Value(0)).current;
   const opac = useRef(new Animated.Value(0)).current;
-  const tY = useRef(new Animated.Value(20)).current;
+  const tY   = useRef(new Animated.Value(20)).current;
 
   const toggle = useCallback(() => {
     const next = !open;
     setOpen(next);
     Animated.parallel([
-      Animated.spring(rot, { toValue: next ? 1 : 0, useNativeDriver: true, speed: 25 }),
-      Animated.spring(opac, { toValue: next ? 1 : 0, useNativeDriver: true, speed: 20 }),
-      Animated.spring(tY, { toValue: next ? 0 : 20, useNativeDriver: true, speed: 20 }),
+      Animated.spring(rot,  { toValue: next ? 1 : 0, useNativeDriver: true,  speed: 25 }),
+      Animated.spring(opac, { toValue: next ? 1 : 0, useNativeDriver: true,  speed: 20 }),
+      Animated.spring(tY,   { toValue: next ? 0 : 20, useNativeDriver: true, speed: 20 }),
     ]).start();
   }, [open]);
 
   const rotation = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
 
   const actions = [
-    { icon: '💰', label: 'Add Income', color: '#22C55E', screen: 'Money' },
+    { icon: '💰', label: 'Add Income',  color: '#22C55E', screen: 'Money' },
     { icon: '💸', label: 'Add Expense', color: '#EF4444', screen: 'Money' },
     { icon: '🎯', label: 'Create Goal', color: '#4F8CFF', screen: 'Goals' },
   ];
@@ -937,7 +808,6 @@ function FABMenu({ navigation }) {
 
 // ─── Styles ───────────────────────────────────────────────
 const st = StyleSheet.create({
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -995,8 +865,6 @@ const st = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-
-  // Dashboard row
   dashRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1012,24 +880,21 @@ const st = StyleSheet.create({
     color: '#0f172a',
     letterSpacing: -0.5,
   },
-
-  // Section wrapper
   section: {
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-
-  // Hero Card
+  // Hero
   heroCard: {
     borderRadius: 20,
     padding: 20,
     overflow: 'hidden',
     shadowColor: '#1a3a8c',
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  heroDeco: {
+  heroDeco1: {
     position: 'absolute',
     top: -40,
     right: -20,
@@ -1038,11 +903,16 @@ const st = StyleSheet.create({
     borderRadius: 80,
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  heroWalletIcon: {
+  heroDeco2: {
     position: 'absolute',
-    top: 20,
-    right: 20,
+    bottom: -60,
+    left: -30,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
+  heroWalletIcon: { position: 'absolute', top: 20, right: 20 },
   heroLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -1064,10 +934,7 @@ const st = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
-  progressText: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-  },
+  progressText: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
   progressTrack: {
     height: 4,
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -1080,11 +947,7 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.65)',
     borderRadius: 99,
   },
-  heroStats: {
-    flexDirection: 'row',
-    gap: 0,
-    marginBottom: 14,
-  },
+  heroStats: { flexDirection: 'row', marginBottom: 14 },
   heroStatLabel: {
     fontSize: 9,
     color: 'rgba(255,255,255,0.35)',
@@ -1092,11 +955,7 @@ const st = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
-  heroStatVal: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.9)',
-  },
+  heroStatVal: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
   heroAlert: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1105,18 +964,9 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  heroAlertText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    flex: 1,
-    lineHeight: 17,
-  },
-
-  // Two-column cards
-  row2: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  heroAlertText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', flex: 1, lineHeight: 17 },
+  // Cards
+  row2: { flexDirection: 'row', gap: 10 },
   halfCard: {
     flex: 1,
     backgroundColor: '#ffffff',
@@ -1128,8 +978,6 @@ const st = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-
-  // Labels
   miniLabel: {
     fontSize: 9,
     fontWeight: '700',
@@ -1145,29 +993,10 @@ const st = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 2,
   },
-
-  // Score + Personality
-  scoreLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-  },
-  personalityDeco: {
-    position: 'absolute',
-    right: 6,
-    top: 10,
-  },
-  personalityType: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  personalityDesc: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 4,
-    lineHeight: 16,
-  },
-
+  scoreLabel: { fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  personalityDeco: { position: 'absolute', right: 6, top: 10 },
+  personalityType: { fontSize: 14, fontWeight: '800' },
+  personalityDesc: { fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 16 },
   // Net Worth
   netWorthCard: {
     backgroundColor: '#ffffff',
@@ -1180,177 +1009,53 @@ const st = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-  netWorthLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  netWorthLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   walletBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#DCFCE7',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center',
   },
-  netWorthAmount: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.5,
-  },
-  netWorthSub: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 1,
-  },
-  netDivider: {
-    width: 1,
-    height: 48,
-    backgroundColor: '#e2e8f0',
-    marginHorizontal: 14,
-  },
-  netIncomeAmt: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#4F8CFF',
-  },
-  netIncomeSub: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 1,
-  },
-  netStatsRow: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    marginTop: 14,
-    paddingTop: 12,
-  },
-  netStatItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 3,
-  },
-  netStatLabel: {
-    fontSize: 10,
-    color: '#94A3B8',
-  },
-  netStatVal: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  // Action Card
-  actionIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0f172a',
-    lineHeight: 20,
-  },
-  actionDesc: {
-    fontSize: 11,
-    color: '#64748b',
-    lineHeight: 16,
-  },
+  netWorthAmount: { fontSize: 22, fontWeight: '800', color: '#0f172a', letterSpacing: -0.5 },
+  netWorthSub: { fontSize: 11, color: '#64748b', marginTop: 1 },
+  netDivider: { width: 1, height: 48, backgroundColor: '#e2e8f0', marginHorizontal: 14 },
+  netIncomeAmt: { fontSize: 18, fontWeight: '800', color: '#4F8CFF' },
+  netIncomeSub: { fontSize: 11, color: '#64748b', marginTop: 1 },
+  netStatsRow: { flexDirection: 'row', borderTopWidth: 1, marginTop: 14, paddingTop: 12 },
+  netStatItem: { flex: 1, alignItems: 'center', gap: 3 },
+  netStatLabel: { fontSize: 10, color: '#94A3B8' },
+  netStatVal: { fontSize: 14, fontWeight: '700' },
+  // Actions
+  actionIconBox: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  actionTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a', lineHeight: 20 },
+  actionDesc: { fontSize: 11, color: '#64748b', lineHeight: 16 },
   actionChevron: {
-    position: 'absolute',
-    top: 42,
-    right: 14,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    position: 'absolute', top: 42, right: 14,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#e2e8f0',
   },
-  actionCta: {
-    borderRadius: 10,
-    paddingVertical: 7,
-    alignItems: 'center',
-    borderWidth: 1,
-    marginTop: 4,
-  },
-  actionCtaText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  insightText: {
-    fontSize: 11,
-    color: '#475569',
-    lineHeight: 17,
-    flex: 1,
-  },
-  insightCta: {
-    borderRadius: 10,
-    paddingVertical: 7,
-    alignItems: 'center',
-    borderWidth: 1,
-    marginTop: 'auto',
-  },
-
-  // Expense split
+  actionCta: { borderRadius: 10, paddingVertical: 7, alignItems: 'center', borderWidth: 1, marginTop: 4 },
+  actionCtaText: { fontSize: 12, fontWeight: '700' },
+  insightText: { fontSize: 11, color: '#475569', lineHeight: 17, flex: 1 },
+  insightCta: { borderRadius: 10, paddingVertical: 7, alignItems: 'center', borderWidth: 1, marginTop: 'auto' },
+  // Expense
   expInsightPill: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 5,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 8,
-    padding: 7,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#DCFCE7',
+    flexDirection: 'row', alignItems: 'flex-start', gap: 5,
+    backgroundColor: '#F0FDF4', borderRadius: 8, padding: 7, marginTop: 8,
+    borderWidth: 1, borderColor: '#DCFCE7',
   },
-  expInsightText: {
-    fontSize: 10,
-    color: '#22C55E',
-    flex: 1,
-    lineHeight: 14,
-  },
-
-  // Goals empty
-  emptyGoalTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  emptyGoalSub: {
-    fontSize: 11,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
+  expInsightText: { fontSize: 10, color: '#22C55E', flex: 1, lineHeight: 14 },
+  emptyGoalTitle: { fontSize: 13, fontWeight: '700', color: '#0f172a' },
+  emptyGoalSub: { fontSize: 11, color: '#64748b', textAlign: 'center', lineHeight: 16 },
   createGoalBtn: {
-    backgroundColor: '#4F8CFF',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    marginTop: 4,
+    backgroundColor: '#4F8CFF', borderRadius: 10,
+    paddingHorizontal: 16, paddingVertical: 9, marginTop: 4,
   },
-  createGoalText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
-
+  createGoalText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   // Achievements
   achBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
-
   // Trend
   trendCard: {
     backgroundColor: '#ffffff',
@@ -1363,172 +1068,53 @@ const st = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-  trendHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  trendYtdVal: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#22C55E',
-    letterSpacing: -0.5,
-  },
-  trendYtdLabel: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '500',
-  },
-  // Animated pill toggle
+  trendHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  trendYtdVal: { fontSize: 20, fontWeight: '800', color: '#22C55E', letterSpacing: -0.5 },
+  trendYtdLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '500' },
   trendToggleWrap: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
-    padding: 2,
-    width: 160,
-    height: 32,
-    position: 'relative',
-    alignItems: 'center',
+    flexDirection: 'row', backgroundColor: '#F1F5F9',
+    borderRadius: 10, padding: 2, width: 160, height: 32,
+    position: 'relative', alignItems: 'center',
   },
   trendPill: {
-    position: 'absolute',
-    height: 28,
-    borderRadius: 8,
+    position: 'absolute', height: 28, borderRadius: 8,
     backgroundColor: '#4F8CFF',
-    shadowColor: '#4F8CFF',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowColor: '#4F8CFF', shadowOpacity: 0.3, shadowRadius: 6, elevation: 3,
   },
-  trendTabBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 28,
-    zIndex: 1,
-  },
-  trendTabText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  trendTabTextActive: {
-    color: '#ffffff',
-    fontWeight: '700',
-  },
-  // Empty state
-  trendEmpty: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  trendEmptyText: {
-    fontSize: 12,
-    color: '#94A3B8',
-    textAlign: 'center',
-    lineHeight: 18,
-    maxWidth: 220,
-  },
-  // Footer
+  trendTabBtn: { alignItems: 'center', justifyContent: 'center', height: 28, zIndex: 1 },
+  trendTabText: { fontSize: 11, fontWeight: '600', color: '#94A3B8' },
+  trendTabTextActive: { color: '#ffffff', fontWeight: '700' },
+  trendEmpty: { alignItems: 'center', paddingVertical: 24 },
+  trendEmptyText: { fontSize: 12, color: '#94A3B8', textAlign: 'center', lineHeight: 18, maxWidth: 220 },
   trendFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9',
   },
-  trendFooterDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#4F8CFF',
-  },
-  trendFooterLabel: {
-    fontSize: 11,
-    color: '#94A3B8',
-    flex: 1,
-  },
-  trendFooterVal: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-
+  trendFooterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4F8CFF' },
+  trendFooterLabel: { fontSize: 11, color: '#94A3B8', flex: 1 },
+  trendFooterVal: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
   // Tools
   toolsCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: '#ffffff', borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: '#e2e8f0',
+    shadowColor: '#0f172a', shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
   },
-  toolItem: {
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
-  toolIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toolLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#475569',
-    textAlign: 'center',
-  },
-
+  toolItem: { alignItems: 'center', gap: 6, flex: 1 },
+  toolIconBox: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  toolLabel: { fontSize: 11, fontWeight: '600', color: '#475569', textAlign: 'center' },
   // FAB
-  fabContainer: {
-    position: 'absolute',
-    bottom: 28,
-    right: 16,
-    alignItems: 'flex-end',
-    zIndex: 200,
-  },
-  fabActions: {
-    marginBottom: 10,
-    gap: 8,
-    alignItems: 'flex-end',
-  },
+  fabContainer: { position: 'absolute', bottom: 28, right: 16, alignItems: 'flex-end', zIndex: 200 },
+  fabActions: { marginBottom: 10, gap: 8, alignItems: 'flex-end' },
   fabAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 99,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 99,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
-  fabActionText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
+  fabActionText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#4F8CFF',
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 8,
+    width: 56, height: 56, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#4F8CFF', shadowOpacity: 0.4, shadowRadius: 14, elevation: 8,
   },
-  fabIcon: {
-    fontSize: 30,
-    color: '#fff',
-    lineHeight: 36,
-  },
+  fabIcon: { fontSize: 30, color: '#fff', lineHeight: 36 },
 });

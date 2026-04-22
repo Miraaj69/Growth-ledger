@@ -1202,7 +1202,7 @@ const ExpensesTab = memo(({ s, dispatch }) => {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: 11, color: T.t3 }}>{spentPct}% used</Text>
           <Text style={{ fontSize: 12, color: budgetColor, fontWeight: '600' }}>
-            {spentPct < 70 ? '🎉 You're doing great! Keep it up.' : spentPct < 90 ? '⚠️ Budget running tight' : '🔴 Over budget — review now'}
+            {spentPct < 70 ? '🎉 Great job! Keep it up.' : spentPct < 90 ? '⚠️ Budget running tight' : '🔴 Over budget — review now'}
           </Text>
         </View>
       </View>
