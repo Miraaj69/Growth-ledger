@@ -14,19 +14,19 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ajaythakur69.growthledger"
+      "bundleIdentifier": "com.khushi69.growthledger"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.ajaythakur69.growthledger"
+      "package": "com.khushi69.growthledger"
     },
     "extra": {
-      "eas": { "projectId": "6b1fa9b6-c727-446e-bc87-ad247c2f32dc" }
+      "eas": { "projectId": "26595c8e-e2d4-4844-a7a8-c6f02d039bbc" }
     },
-    "owner": "nidhi2701",
+    "owner": "khushi69",
     "plugins": [
       "expo-font",
       ["expo-splash-screen", {
