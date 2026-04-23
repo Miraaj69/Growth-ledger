@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import Svg, { Circle, Path, G, Line } from 'react-native-svg';
+import Svg, { Circle, Path, Line } from 'react-native-svg';
 import { useApp } from './AppContext';
 import { useTheme } from './ThemeContext';
 
@@ -142,13 +142,28 @@ const MiniLineChart = memo(({ takenData, plannedData, labels, T }) => {
 
   return (
     <View>
+      <View style={{ position: 'relative' }}>
+        {/* Y-axis labels rendered in RN layer, outside SVG */}
+        {[0, 4, 8, 12, 16].map((v) => (
+          <Text
+            key={'lbl' + v}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: py(v) - 6,
+              fontSize: 8,
+              color: T.t3,
+              width: padL - 2,
+              textAlign: 'right',
+            }}
+          >
+            {v}
+          </Text>
+        ))}
       <Svg width={W} height={H}>
         {/* Grid lines */}
         {[0, 4, 8, 12, 16].map((v) => (
-          <G key={v}>
-            <Line x1={padL} y1={py(v)} x2={padL + chartW} y2={py(v)} stroke={T.border} strokeWidth={0.5} />
-            <Text style={{ position: 'absolute', left: 0, top: py(v) - 6, fontSize: 8, color: T.t3 }}>{v}</Text>
-          </Line>
+          <Line key={v} x1={padL} y1={py(v)} x2={padL + chartW} y2={py(v)} stroke={T.border} strokeWidth={0.5} />
         ))}
         {/* Taken line */}
         <Path d={makePath(takenData)}  stroke="#4F8CFF" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -162,6 +177,7 @@ const MiniLineChart = memo(({ takenData, plannedData, labels, T }) => {
           <Circle key={'p' + i} cx={px(i)} cy={py(v)} r={3} fill="#22C55E" />
         ))}
       </Svg>
+      </View>
       {/* X-axis labels */}
       <View style={{ flexDirection: 'row', paddingLeft: padL, paddingRight: padR, justifyContent: 'space-between' }}>
         {labels.map((l, i) => (
