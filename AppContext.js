@@ -18,6 +18,14 @@ const EMPTY_STATE = () => ({
   currentMonth: new Date().getMonth(),
   currentYear:  new Date().getFullYear(),
   attendance:   new Set(),
+  // Leave & Attendance (new — keyed by YYYY-MM-DD)
+  attendanceData: {},   // { "2026-05-01": "present" | "absent" | "halfday" | "planned" | "sick" | "casual" }
+  holidays:       [],   // [{ date: "2026-01-26", name: "Republic Day" }]
+  leavePlans:     [],   // [{ date, leaveType, reason }]
+  leaveCats:      {},   // { planned: 2, sick: 1, casual: 0 }
+  absentDays:     {},   // legacy compat
+  leaveDays:      {},   // legacy compat
+  halfdayDays:    {},   // legacy compat
 
   // Income sources (index 0 = salary, auto-synced)
   incomes: [
@@ -203,6 +211,7 @@ function reducer(state, action) {
       // Month change
       case 'SET_MONTH':
         return { ...state, currentMonth: action.month, currentYear: action.year, attendance: new Set() };
+        // NOTE: attendanceData is NOT cleared — it's indexed by full date key (YYYY-MM-DD)
 
       // Onboarding complete
       case 'COMPLETE_ONBOARD':
@@ -210,7 +219,15 @@ function reducer(state, action) {
 
       // Hydrate from storage
       case 'HYDRATE':
-        return { ...EMPTY_STATE(), ...action.state, attendance: new Set(action.state?.attendance || []) };
+        return {
+          ...EMPTY_STATE(),
+          ...action.state,
+          attendance:     new Set(action.state?.attendance || []),
+          attendanceData: action.state?.attendanceData || {},
+          holidays:       action.state?.holidays       || [],
+          leavePlans:     action.state?.leavePlans     || [],
+          leaveCats:      action.state?.leaveCats      || {},
+        };
 
       // Full reset
       case 'RESET':

@@ -19,6 +19,7 @@ import { triggerSmartNotifications } from './notifications';
 
 import HomeScreen        from './HomeScreen';
 import MoneyScreen       from './MoneyScreen';
+import LeavesScreen      from './LeavesScreen';
 import InsightsScreen    from './InsightsScreen';
 import ProfileScreen     from './ProfileScreen';
 import TaxScreen         from './TaxScreen';
@@ -39,8 +40,8 @@ const Stack = createNativeStackNavigator();
 const TABS = [
   { name: 'Home',        icon: '🏠', label: 'Home'    },
   { name: 'Money',       icon: '💵', label: 'Money'   },
+  { name: 'Leaves',      icon: '📅', label: 'Leaves'  },
   { name: 'Growth',      icon: '🚀', label: 'Growth'  },
-  { name: 'Calculators', icon: '🧮', label: 'Calc'    },
   { name: 'Profile',     icon: '👤', label: 'Profile' },
 ];
 
@@ -184,8 +185,8 @@ function MainTabs() {
     <Tab.Navigator tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false }}>
       <Tab.Screen name="Home"        component={HomeStack}         />
       <Tab.Screen name="Money"       component={MoneyScreen}       />
+      <Tab.Screen name="Leaves"      component={LeavesScreen}      />
       <Tab.Screen name="Growth"      component={GrowthScreen}      />
-      <Tab.Screen name="Calculators" component={CalculatorsScreen} />
       <Tab.Screen name="Profile"     component={ProfileScreen}     />
     </Tab.Navigator>
   );

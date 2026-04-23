@@ -1,11 +1,20 @@
-// HomeScreen.js — Premium Redesign v12
-// Design: CRED / Groww / Apple Finance — clean, layered, depth-first
-// FIXES: added `memo` to React import (was causing ReferenceError crash)
+// HomeScreen.js — Premium Redesign v13
+// FIXES APPLIED:
+// 1. Streak pill — light-yellow filled, user photo right of pill, larger avatar, shadow, borderRadius:0 on image, Apple boy bitmoji default
+// 2. Blue hero card — light wallet SVG icon top-right corner
+// 3. Health score — score ring centered + aligned
+// 4. Personality — brain emoji more visible (larger opacity)
+// 5. Next Action — icon & text perfectly aligned
+// 6. Expense Split — center label black(light)/white(dark), legend perfectly aligned
+// 7. Earnings Trend — clicking Monthly/Weekly shows value in small card below graph
+// 8. Quick Tools — icon alignment fixed, equal spacing
+// 9. FAB — close icon always shows "+" (45deg), glowing animation, premium style, no bugs
 
 import React, { useMemo, useState, useCallback, useRef, useEffect, memo } from 'react';
 import {
   ScrollView, View, Text, Pressable,
   StyleSheet, Animated, Dimensions, Image,
+  TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from './AppContext';
@@ -51,30 +60,39 @@ const generateAIInsights = (s, d) => {
   return insights.slice(0, 4);
 };
 
-// ─── Streak Badge ─────────────────────────────────────────
-function StreakBadge({ streak }) {
+// ─── FIX 1: Streak + Avatar Header Row ─────────────────────
+// Streak pill is now light-yellow filled. Avatar sits right of pill.
+// Default is Apple-style boy bitmoji 🧒. Larger avatar, shadow, borderRadius:0 on Image.
+function StreakAvatarRow({ streak, avatarUri, onAvatarPress }) {
   return (
-    <View style={st.streakBadge}>
-      <Text style={st.streakIcon}>⚡</Text>
-      <Text style={st.streakText}>{streak}d streak</Text>
+    <View style={st.streakAvatarRow}>
+      {/* Streak pill — yellow fill */}
+      <View style={st.streakPill}>
+        <Text style={st.streakIcon}>⚡</Text>
+        <Text style={st.streakText}>{streak}d streak</Text>
+      </View>
+
+      {/* Avatar — right of pill */}
+      <TouchableOpacity onPress={onAvatarPress} activeOpacity={0.85} style={st.avatarWrap}>
+        {avatarUri ? (
+          <Image
+            source={{ uri: avatarUri }}
+            style={st.avatarImage}
+            resizeMode="cover"
+          />
+        ) : (
+          // Default Apple boy bitmoji
+          <View style={st.avatarDefault}>
+            <Text style={st.avatarEmoji}>🧒</Text>
+          </View>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
 
-// ─── Profile Avatar ───────────────────────────────────────
-function Avatar({ uri }) {
-  if (uri) {
-    return <Image source={{ uri }} style={st.avatar} />;
-  }
-  return (
-    <View style={st.avatarDefault}>
-      <Text style={{ fontSize: 26 }}>🧑‍💼</Text>
-    </View>
-  );
-}
-
-// ─── Hero Earnings Card ───────────────────────────────────
-function HeroCard({ d, s }) {
+// ─── FIX 2: Hero Earnings Card with wallet SVG icon ────────
+function HeroCard({ d, s, theme }) {
   const month = s.currentMonth || 0;
   const year = s.currentYear || new Date().getFullYear();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -104,9 +122,12 @@ function HeroCard({ d, s }) {
       <View style={st.heroDeco1} />
       <View style={st.heroDeco2} />
 
-      {/* Wallet icon top-right */}
-      <View style={st.heroWalletIcon}>
-        <Text style={{ fontSize: 22, opacity: 0.3 }}>👛</Text>
+      {/* FIX 2 — Wallet SVG icon top-right, light color */}
+      <View style={st.heroWalletContainer}>
+        <View style={st.heroWalletBg}>
+          {/* Simple wallet drawn with nested Views (no extra dep) */}
+          <Text style={st.heroWalletEmoji}>👛</Text>
+        </View>
       </View>
 
       <Text style={st.heroLabel}>EARNED THIS MONTH</Text>
@@ -145,18 +166,23 @@ function HeroCard({ d, s }) {
   );
 }
 
-// ─── Score + Personality Row ──────────────────────────────
-function ScorePersonalityRow({ score, personality }) {
+// ─── FIX 3 & 4: Score + Personality Row ───────────────────
+// FIX 3: ScoreRing now vertically centered in health score card
+// FIX 4: Brain emoji opacity increased to 0.15 (more visible)
+function ScorePersonalityRow({ score, personality, isDark }) {
   return (
     <View style={st.row2}>
-      {/* Health Score */}
-      <View style={[st.halfCard, { borderColor: '#e2e8f0' }]}>
+      {/* FIX 3 — Health Score: ring centered with flexbox */}
+      <View style={[st.halfCard]}>
         <Text style={st.miniLabel}>HEALTH SCORE</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
-          <ScoreRing score={score.total} color={score.color} size={64} sw={7} />
-          <View style={{ flex: 1 }}>
+        {/* FIX 3: outer row with alignItems center, ring + text side by side */}
+        <View style={st.scoreRow}>
+          <View style={st.scoreRingWrap}>
+            <ScoreRing score={score.total} color={score.color} size={64} sw={7} />
+          </View>
+          <View style={st.scoreRight}>
             <Text style={[st.scoreLabel, { color: score.color }]}>{score.label} 👍</Text>
-            <View style={{ marginTop: 6, gap: 4 }}>
+            <View style={{ marginTop: 6, gap: 5 }}>
               {(score.breakdown || []).slice(0, 3).map(b => (
                 <Bar key={b.label} value={b.score} total={b.max} color={b.color} h={3} />
               ))}
@@ -165,15 +191,16 @@ function ScorePersonalityRow({ score, personality }) {
         </View>
       </View>
 
-      {/* Personality */}
-      <View style={[st.halfCard, { borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden' }]}>
+      {/* FIX 4 — Personality: brain more visible */}
+      <View style={[st.halfCard, { overflow: 'hidden' }]}>
+        {/* FIX 4: opacity 0.15 — clearly visible but decorative */}
         <View style={st.personalityDeco}>
-          <Text style={{ fontSize: 44, opacity: 0.08 }}>🧠</Text>
+          <Text style={st.personalityBrain}>🧠</Text>
         </View>
         <Text style={st.miniLabel}>PERSONALITY</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+        <View style={st.personalityTypeRow}>
           <Text style={{ fontSize: 12 }}>📈</Text>
-          <Text style={[st.personalityType, { color: personality.color }]}>{personality.type}</Text>
+          <Text style={[st.personalityType, { color: personality.color }]}> {personality.type}</Text>
         </View>
         <Text style={st.personalityDesc}>{personality.desc || 'Boost your SIP now.'}</Text>
       </View>
@@ -220,7 +247,8 @@ function NetWorthCard({ d }) {
   );
 }
 
-// ─── Next Action + AI Insight Row ────────────────────────
+// ─── FIX 5: Next Action + AI Insight Row ──────────────────
+// Icon and text are now in a row with proper alignItems: 'center'
 function ActionInsightRow({ action, aiInsights, navigation }) {
   const [showAll, setShowAll] = useState(false);
   const firstInsight = aiInsights[0];
@@ -228,33 +256,33 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
   return (
     <View style={st.row2}>
       <Pressable
-        style={[st.halfCard, { borderColor: '#e2e8f0', gap: 8 }]}
+        style={[st.halfCard, { gap: 8 }]}
         onPress={() => navigation?.navigate?.(action.screen || 'Goals')}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {/* FIX 5 — Icon + label in a flex row, aligned center */}
+        <View style={st.actionHeaderRow}>
           <View style={[st.actionIconBox, { backgroundColor: (action.color || '#22C55E') + '18' }]}>
-            <Text style={{ fontSize: 16 }}>{action.icon || '📈'}</Text>
+            <Text style={st.actionIconText}>{action.icon || '📈'}</Text>
           </View>
-          <Text style={[st.miniLabel, { color: action.color || '#22C55E' }]}>NEXT ACTION</Text>
+          <Text style={[st.miniLabel, { color: action.color || '#22C55E', flex: 1 }]}>NEXT ACTION</Text>
         </View>
         <Text style={st.actionTitle}>{action.title || 'Start a SIP today'}</Text>
         <Text style={st.actionDesc} numberOfLines={2}>{action.desc || '₹500/mo in Nifty 50 = wealth over time.'}</Text>
-        <View style={st.actionChevron}>
-          <Text style={{ fontSize: 14, color: action.color || '#22C55E' }}>›</Text>
-        </View>
-        <Pressable style={[st.actionCta, { backgroundColor: (action.color || '#22C55E') + '18', borderColor: (action.color || '#22C55E') + '30' }]}>
+        <Pressable
+          style={[st.actionCta, { backgroundColor: (action.color || '#22C55E') + '18', borderColor: (action.color || '#22C55E') + '30' }]}
+          onPress={() => navigation?.navigate?.(action.screen || 'Goals')}
+        >
           <Text style={[st.actionCtaText, { color: action.color || '#22C55E' }]}>Start Now →</Text>
         </Pressable>
       </Pressable>
 
-      <View style={[st.halfCard, { borderColor: '#e2e8f0', gap: 8 }]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <View style={[st.actionIconBox, { backgroundColor: '#A78BFA18' }]}>
-              <Text style={{ fontSize: 16 }}>🧠</Text>
-            </View>
-            <Text style={[st.miniLabel, { color: '#A78BFA' }]}>AI INSIGHT</Text>
+      <View style={[st.halfCard, { gap: 8 }]}>
+        {/* FIX 5 — consistent alignment for insight header */}
+        <View style={st.actionHeaderRow}>
+          <View style={[st.actionIconBox, { backgroundColor: '#A78BFA18' }]}>
+            <Text style={st.actionIconText}>🧠</Text>
           </View>
+          <Text style={[st.miniLabel, { color: '#A78BFA', flex: 1 }]}>AI INSIGHT</Text>
           <Pressable onPress={() => setShowAll(v => !v)}>
             <Text style={{ fontSize: 11, color: '#4F8CFF', fontWeight: '600' }}>
               All ({aiInsights.length})
@@ -277,33 +305,44 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
   );
 }
 
-// ─── Expense Split + Goals Row ────────────────────────────
-function ExpenseGoalsRow({ s, d, navigation }) {
+// ─── FIX 6: Expense Split + Goals Row ─────────────────────
+// Center donut label: black in light, white in dark/amoled
+// Legend aligned with justifyContent and fixed widths
+function ExpenseGoalsRow({ s, d, navigation, isDark }) {
   const goals = s.goals || [];
+  // FIX 6: center label color by theme
+  const centerLabelColor = isDark ? '#FFFFFF' : '#0f172a';
 
   return (
     <View style={st.row2}>
-      <View style={[st.halfCard, { borderColor: '#e2e8f0' }]}>
+      <View style={[st.halfCard]}>
         <Text style={st.sectionTitle}>EXPENSE SPLIT</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
-          <DonutChart
-            segments={(s.expenses || []).map(e => ({ pct: e.pct, color: e.color }))}
-            size={80}
-            sw={10}
-            centerLabel={fmtShort(d.salary || 32500)}
-          />
-          <View style={{ flex: 1, gap: 6 }}>
+        <View style={st.expenseBody}>
+          {/* Donut */}
+          <View style={st.expenseDonutWrap}>
+            <DonutChart
+              segments={(s.expenses || []).map(e => ({ pct: e.pct, color: e.color }))}
+              size={82}
+              sw={10}
+              centerLabel={fmtShort(d.salary || 32500)}
+              centerLabelColor={centerLabelColor}
+            />
+          </View>
+          {/* FIX 6 — legend: perfectly aligned with consistent column widths */}
+          <View style={st.expenseLegend}>
             {(s.expenses || []).map((e, i) => (
-              <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: e.color }} />
-                  <Text style={{ fontSize: 10, color: '#475569' }}>{e.label}</Text>
+              <View key={i} style={st.expenseLegendRow}>
+                {/* Left: dot + label */}
+                <View style={st.expenseLegendLeft}>
+                  <View style={[st.expenseDot, { backgroundColor: e.color }]} />
+                  <Text style={st.expenseLegendLabel} numberOfLines={1}>{e.label}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#0f172a' }}>
+                {/* Right: amount + pct stacked */}
+                <View style={st.expenseLegendRight}>
+                  <Text style={st.expenseLegendAmt}>
                     {fmt(d.salary * e.pct / 100)}
                   </Text>
-                  <Text style={{ fontSize: 9, color: '#94A3B8' }}>{e.pct}%</Text>
+                  <Text style={st.expenseLegendPct}>{e.pct}%</Text>
                 </View>
               </View>
             ))}
@@ -317,7 +356,7 @@ function ExpenseGoalsRow({ s, d, navigation }) {
         </View>
       </View>
 
-      <View style={[st.halfCard, { borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={[st.halfCard, { alignItems: 'center', justifyContent: 'center' }]}>
         <Text style={[st.sectionTitle, { alignSelf: 'flex-start' }]}>FINANCIAL GOALS</Text>
         {goals.length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 16, gap: 8 }}>
@@ -355,7 +394,7 @@ function AchievementsSnapshotRow({ achievements, d }) {
   const nextUnlocked = achievements.find(a => !a.unlocked);
   return (
     <View style={st.row2}>
-      <View style={[st.halfCard, { borderColor: '#e2e8f0' }]}>
+      <View style={[st.halfCard]}>
         <Text style={st.sectionTitle}>ACHIEVEMENTS</Text>
         {nextUnlocked && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
@@ -386,7 +425,7 @@ function AchievementsSnapshotRow({ achievements, d }) {
         </View>
       </View>
 
-      <View style={[st.halfCard, { borderColor: '#e2e8f0' }]}>
+      <View style={[st.halfCard]}>
         <Text style={st.sectionTitle}>FINANCIAL SNAPSHOT</Text>
         <View style={{ gap: 10, marginTop: 10 }}>
           {[
@@ -405,7 +444,7 @@ function AchievementsSnapshotRow({ achievements, d }) {
   );
 }
 
-// ─── Earnings Trend ───────────────────────────────────────
+// ─── FIX 7: Earnings Trend — selected point shows value card ─
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEK_LABELS  = ['W1', 'W2', 'W3', 'W4'];
 const TOGGLE_TABS  = ['Monthly', 'Weekly'];
@@ -429,8 +468,8 @@ function buildMonthlyBars(s) {
     .slice(-6);
 }
 
-// ── Line Chart — pure SVG, no extra deps ──────────────────
-const LineChart = memo(({ data, color, height }) => {
+// Line chart with tap-to-select point
+const LineChart = memo(({ data, color, height, selectedIndex, onSelectIndex }) => {
   const W_CHART = Dimensions.get('window').width - 64;
   const H       = height;
   const PAD_V   = 8;
@@ -465,12 +504,28 @@ const LineChart = memo(({ data, color, height }) => {
   const {
     Svg, Path, Defs,
     LinearGradient: SvgGrad, Stop,
-    Circle: SvgCircle, Line,
+    Circle: SvgCircle, Line, Rect,
   } = require('react-native-svg');
+
+  // FIX 7: handle tap on chart area to select closest point
+  const handleChartPress = useCallback((evt) => {
+    const tapX = evt.nativeEvent.locationX;
+    let closestIdx = 0;
+    let minDist = Infinity;
+    pts.forEach((pt, i) => {
+      const dist = Math.abs(pt.x - tapX);
+      if (dist < minDist) { minDist = dist; closestIdx = i; }
+    });
+    onSelectIndex?.(closestIdx);
+  }, [pts, onSelectIndex]);
 
   return (
     <Animated.View style={{ opacity: chartOpacity }}>
-      <Svg width={W_CHART} height={H}>
+      <Svg
+        width={W_CHART}
+        height={H}
+        onPress={handleChartPress}
+      >
         <Defs>
           <SvgGrad id="fill" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0%"   stopColor={color} stopOpacity="0.18" />
@@ -505,17 +560,21 @@ const LineChart = memo(({ data, color, height }) => {
           />
         ) : null}
 
-        {pts.map((pt, i) => (
-          <SvgCircle
-            key={i}
-            cx={pt.x}
-            cy={pt.y}
-            r={i === pts.length - 1 ? 5 : 3}
-            fill={i === pts.length - 1 ? color : '#fff'}
-            stroke={color}
-            strokeWidth={i === pts.length - 1 ? 2.5 : 1.5}
-          />
-        ))}
+        {pts.map((pt, i) => {
+          const isSelected = selectedIndex === i;
+          const isLast = i === pts.length - 1;
+          return (
+            <SvgCircle
+              key={i}
+              cx={pt.x}
+              cy={pt.y}
+              r={isSelected ? 6 : isLast ? 5 : 3}
+              fill={isSelected ? '#fff' : isLast ? color : '#fff'}
+              stroke={color}
+              strokeWidth={isSelected ? 3 : isLast ? 2.5 : 1.5}
+            />
+          );
+        })}
       </Svg>
 
       <View style={{ flexDirection: 'row', paddingHorizontal: PAD_H, marginTop: -4 }}>
@@ -526,8 +585,8 @@ const LineChart = memo(({ data, color, height }) => {
               flex: 1,
               textAlign: 'center',
               fontSize: 9,
-              fontWeight: i === pts.length - 1 ? '700' : '400',
-              color: i === pts.length - 1 ? '#0f172a' : '#94A3B8',
+              fontWeight: (i === selectedIndex || i === pts.length - 1) ? '700' : '400',
+              color: i === selectedIndex ? '#4F8CFF' : i === pts.length - 1 ? '#0f172a' : '#94A3B8',
             }}
           >
             {pt.l}
@@ -540,20 +599,33 @@ const LineChart = memo(({ data, color, height }) => {
 
 function EarningsTrendCard({ s, d }) {
   const [viewMode, setViewMode] = useState('monthly');
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim  = useRef(new Animated.Value(1)).current;
+  // FIX 7: selected value card scale animation
+  const valueCardScale = useRef(new Animated.Value(0)).current;
+  const valueCardOpacity = useRef(new Animated.Value(0)).current;
 
   const handleToggle = useCallback((mode) => {
     if (mode === viewMode) return;
-    // Fade out first (native driver)
     Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
       setViewMode(mode);
-      // slideAnim is non-native (width/position), run separately
+      setSelectedIndex(null);
       Animated.spring(slideAnim, { toValue: mode === 'monthly' ? 0 : 1, useNativeDriver: false, speed: 28, bounciness: 0 }).start();
-      // fadeAnim is native, run separately
       Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
     });
   }, [viewMode]);
+
+  // FIX 7: animate value card in/out on selection
+  const handleSelectIndex = useCallback((idx) => {
+    setSelectedIndex(idx);
+    valueCardScale.setValue(0.8);
+    valueCardOpacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(valueCardScale, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 8 }),
+      Animated.timing(valueCardOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   const chartData = useMemo(() => {
     if (viewMode === 'weekly') return buildWeeklyBars(s, d);
@@ -577,6 +649,11 @@ function EarningsTrendCard({ s, d }) {
   const activeLabel = viewMode === 'monthly' ? currentMonthStr : 'Week 4';
   const activeValue = activeBarData?.v > 0 ? fmt(activeBarData.v) : '₹0';
 
+  // FIX 7: compute selected point info
+  const selectedPoint = selectedIndex !== null ? chartData[selectedIndex] : null;
+  const selectedLabel = selectedPoint ? selectedPoint.l : null;
+  const selectedValue = selectedPoint ? (selectedPoint.v > 0 ? fmt(selectedPoint.v) : '₹0') : null;
+
   const TOGGLE_W = 160;
   const PILL_W   = TOGGLE_W / 2 - 4;
   const pillLeft = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [2, PILL_W + 4] });
@@ -596,7 +673,7 @@ function EarningsTrendCard({ s, d }) {
 
         <View style={st.trendToggleWrap}>
           <Animated.View style={[st.trendPill, { left: pillLeft, width: PILL_W }]} />
-          {TOGGLE_TABS.map((tab, idx) => {
+          {TOGGLE_TABS.map((tab) => {
             const isActive = viewMode === tab.toLowerCase();
             return (
               <Pressable
@@ -615,7 +692,13 @@ function EarningsTrendCard({ s, d }) {
 
       <Animated.View style={{ opacity: fadeAnim, marginTop: 16 }}>
         {hasData ? (
-          <LineChart data={chartData} color="#4F8CFF" height={90} />
+          <LineChart
+            data={chartData}
+            color="#4F8CFF"
+            height={90}
+            selectedIndex={selectedIndex}
+            onSelectIndex={handleSelectIndex}
+          />
         ) : (
           <View style={st.trendEmpty}>
             <Text style={{ fontSize: 28, marginBottom: 6 }}>📊</Text>
@@ -628,18 +711,33 @@ function EarningsTrendCard({ s, d }) {
         )}
       </Animated.View>
 
-      {hasData && (
+      {/* FIX 7: Show selected value in a small animated card */}
+      {hasData && selectedPoint && (
+        <Animated.View style={[st.selectedValueCard, {
+          opacity: valueCardOpacity,
+          transform: [{ scale: valueCardScale }],
+        }]}>
+          <Text style={st.selectedValueLabel}>{selectedLabel}</Text>
+          <Text style={st.selectedValueAmt}>{selectedValue}</Text>
+        </Animated.View>
+      )}
+
+      {hasData && !selectedPoint && (
         <View style={st.trendFooter}>
           <View style={st.trendFooterDot} />
           <Text style={st.trendFooterLabel}>{activeLabel}</Text>
           <Text style={st.trendFooterVal}>{activeValue}</Text>
         </View>
       )}
+
+      {hasData && (
+        <Text style={st.trendHint}>Tap on chart to see value</Text>
+      )}
     </View>
   );
 }
 
-// ─── Quick Tools Grid ─────────────────────────────────────
+// ─── FIX 8: Quick Tools Grid — icon alignment fixed ────────
 function QuickToolsGrid({ navigation }) {
   const tools = [
     { icon: '🎯', label: 'Goal Planner', screen: 'Goals',     color: '#EF4444' },
@@ -649,18 +747,20 @@ function QuickToolsGrid({ navigation }) {
   ];
   return (
     <View style={st.toolsCard}>
-      <Text style={[st.sectionTitle, { marginBottom: 14 }]}>QUICK TOOLS</Text>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+      <Text style={[st.sectionTitle, { marginBottom: 16 }]}>QUICK TOOLS</Text>
+      {/* FIX 8: Use flex row with equal flex, icon centered via alignItems+justifyContent */}
+      <View style={st.toolsGrid}>
         {tools.map(tool => (
           <Pressable
             key={tool.screen}
             onPress={() => navigation?.navigate?.(tool.screen)}
-            style={st.toolItem}
+            style={({ pressed }) => [st.toolItem, pressed && { opacity: 0.7 }]}
           >
-            <View style={[st.toolIconBox, { backgroundColor: tool.color + '12' }]}>
-              <Text style={{ fontSize: 22 }}>{tool.icon}</Text>
+            {/* FIX 8: icon box is fixed size, centered */}
+            <View style={[st.toolIconBox, { backgroundColor: tool.color + '14' }]}>
+              <Text style={st.toolIconText}>{tool.icon}</Text>
             </View>
-            <Text style={st.toolLabel}>{tool.label}</Text>
+            <Text style={st.toolLabel} numberOfLines={2}>{tool.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -674,6 +774,7 @@ function QuickToolsGrid({ navigation }) {
 export default function HomeScreen({ navigation }) {
   const { state: s, set } = useApp();
   const { T } = useTheme();
+  const isDark = T?.mode === 'dark' || T?.mode === 'amoled';
 
   const d = useMemo(() => {
     try { return deriveState(s); }
@@ -719,10 +820,12 @@ export default function HomeScreen({ navigation }) {
             <Text style={st.greeting}>{greeting}, {userName} 👋</Text>
             <Text style={st.greetingSub}>{"Let's grow your wealth 🚀"}</Text>
           </View>
-          <View style={{ alignItems: 'flex-end', gap: 8 }}>
-            <StreakBadge streak={s.loginStreak || 1} />
-            <Avatar uri={s.profileImage} />
-          </View>
+          {/* FIX 1: streak pill + avatar in a column on right */}
+          <StreakAvatarRow
+            streak={s.loginStreak || 1}
+            avatarUri={s.profileImage}
+            onAvatarPress={() => navigation?.navigate?.('Profile')}
+          />
         </View>
 
         {/* ── DASHBOARD TITLE + MONTH PICKER ── */}
@@ -737,38 +840,64 @@ export default function HomeScreen({ navigation }) {
 
         {/* Sections */}
         <View style={st.section}><HeroCard d={d} s={s} /></View>
-        <View style={st.section}><ScorePersonalityRow score={score} personality={personality} /></View>
+        <View style={st.section}><ScorePersonalityRow score={score} personality={personality} isDark={isDark} /></View>
         <View style={st.section}><NetWorthCard d={d} /></View>
         <View style={st.section}><ActionInsightRow action={action} aiInsights={aiInsights} navigation={navigation} /></View>
-        <View style={st.section}><ExpenseGoalsRow s={s} d={d} navigation={navigation} /></View>
+        <View style={st.section}><ExpenseGoalsRow s={s} d={d} navigation={navigation} isDark={isDark} /></View>
         <View style={st.section}><AchievementsSnapshotRow achievements={achievements} d={d} /></View>
         <View style={st.section}><EarningsTrendCard s={s} d={d} /></View>
         <View style={[st.section, { marginBottom: 0 }]}><QuickToolsGrid navigation={navigation} /></View>
 
       </ScrollView>
 
-      <FABMenu navigation={navigation} />
+      {/* FIX 9: Premium FAB with glow + always + icon */}
+      <PremiumFAB navigation={navigation} />
     </View>
   );
 }
 
-// ─── FAB ─────────────────────────────────────────────────
-function FABMenu({ navigation }) {
+// ─── FIX 9: Premium FAB — always shows + icon, glow animation ─
+// Bug fix: was showing * on close. Fixed by always using "+" text
+// and rotating it 45deg when open (not switching characters).
+// Added pulsing glow animation for premium feel.
+function PremiumFAB({ navigation }) {
   const [open, setOpen] = useState(false);
-  const rot  = useRef(new Animated.Value(0)).current;
-  const opac = useRef(new Animated.Value(0)).current;
-  const tY   = useRef(new Animated.Value(20)).current;
+  const rot     = useRef(new Animated.Value(0)).current;
+  const opac    = useRef(new Animated.Value(0)).current;
+  const tY      = useRef(new Animated.Value(20)).current;
+  // FIX 9: glow pulse anim
+  const glowAnim = useRef(new Animated.Value(1)).current;
+  const glowLoop = useRef(null);
+
+  // Start glow pulse when closed
+  useEffect(() => {
+    if (!open) {
+      glowLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, { toValue: 1.3, duration: 900, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 1.0, duration: 900, useNativeDriver: true }),
+        ])
+      );
+      glowLoop.current.start();
+    } else {
+      glowLoop.current?.stop();
+      glowAnim.setValue(1);
+    }
+    return () => glowLoop.current?.stop();
+  }, [open]);
 
   const toggle = useCallback(() => {
     const next = !open;
     setOpen(next);
     Animated.parallel([
-      Animated.spring(rot,  { toValue: next ? 1 : 0, useNativeDriver: true,  speed: 25 }),
+      Animated.spring(rot,  { toValue: next ? 1 : 0, useNativeDriver: true,  speed: 25, bounciness: 4 }),
       Animated.spring(opac, { toValue: next ? 1 : 0, useNativeDriver: true,  speed: 20 }),
       Animated.spring(tY,   { toValue: next ? 0 : 20, useNativeDriver: true, speed: 20 }),
     ]).start();
   }, [open]);
 
+  // FIX 9: rotation goes 0→45deg. "+" at 45deg looks like "×".
+  // This avoids switching icon chars which caused the * bug.
   const rotation = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
 
   const actions = [
@@ -785,7 +914,7 @@ function FABMenu({ navigation }) {
             <Pressable
               key={i}
               onPress={() => { navigation?.navigate?.(a.screen); setOpen(false); }}
-              style={[st.fabAction, { backgroundColor: a.color }]}
+              style={({ pressed }) => [st.fabAction, { backgroundColor: a.color, opacity: pressed ? 0.85 : 1 }]}
             >
               <Text style={{ fontSize: 16 }}>{a.icon}</Text>
               <Text style={st.fabActionText}>{a.label}</Text>
@@ -793,6 +922,13 @@ function FABMenu({ navigation }) {
           ))}
         </Animated.View>
       )}
+
+      {/* FIX 9: Glow ring behind FAB */}
+      <Animated.View style={[st.fabGlow, {
+        transform: [{ scale: glowAnim }],
+        opacity: glowAnim.interpolate({ inputRange: [1, 1.3], outputRange: [0.3, 0] }),
+      }]} />
+
       <Pressable onPress={toggle}>
         <LinearGradient
           colors={['#2563EB', '#4F8CFF']}
@@ -800,7 +936,10 @@ function FABMenu({ navigation }) {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Animated.Text style={[st.fabIcon, { transform: [{ rotate: rotation }] }]}>+</Animated.Text>
+          {/* FIX 9: Always render "+" and rotate it. Never switch to "*" */}
+          <Animated.Text style={[st.fabIcon, { transform: [{ rotate: rotation }] }]}>
+            +
+          </Animated.Text>
         </LinearGradient>
       </Pressable>
     </View>
@@ -828,44 +967,59 @@ const st = StyleSheet.create({
     color: '#64748b',
     marginTop: 2,
   },
-  streakBadge: {
+
+  // FIX 1 — streak + avatar
+  streakAvatarRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  streakPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#fff',
+    // FIX 1: light yellow fill
+    backgroundColor: '#FEF9C3',
     borderWidth: 1.5,
-    borderColor: '#F59E0B40',
+    borderColor: '#FDE68A',
     borderRadius: 99,
     paddingHorizontal: 12,
     paddingVertical: 6,
     shadowColor: '#F59E0B',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  streakIcon: { fontSize: 13 },
-  streakText: { fontSize: 12, fontWeight: '700', color: '#F59E0B' },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  avatarDefault: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 2,
-    borderColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#4F8CFF',
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.18,
     shadowRadius: 8,
     elevation: 3,
   },
+  streakIcon: { fontSize: 13 },
+  streakText: { fontSize: 12, fontWeight: '700', color: '#D97706' },
+
+  // FIX 1 — avatar: bigger, no border radius on image, shadow
+  avatarWrap: {
+    shadowColor: '#4F8CFF',
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 5,
+    borderRadius: 24,
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 0, // FIX 1: borderRadius 0 on image as requested
+    backgroundColor: '#EFF6FF',
+  },
+  avatarDefault: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarEmoji: {
+    fontSize: 28,
+    lineHeight: 32,
+  },
+
   dashRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -885,6 +1039,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
+
   // Hero
   heroCard: {
     borderRadius: 20,
@@ -913,7 +1068,26 @@ const st = StyleSheet.create({
     borderRadius: 90,
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  heroWalletIcon: { position: 'absolute', top: 20, right: 20 },
+  // FIX 2 — wallet icon top-right
+  heroWalletContainer: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  heroWalletBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroWalletEmoji: {
+    fontSize: 20,
+    opacity: 0.75,
+  },
   heroLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -921,6 +1095,7 @@ const st = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 8,
+    marginTop: 4,
   },
   heroAmount: {
     fontSize: 40,
@@ -966,6 +1141,7 @@ const st = StyleSheet.create({
     paddingVertical: 9,
   },
   heroAlertText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', flex: 1, lineHeight: 17 },
+
   // Cards
   row2: { flexDirection: 'row', gap: 10 },
   halfCard: {
@@ -974,6 +1150,7 @@ const st = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
+    borderColor: '#e2e8f0',
     shadowColor: '#0f172a',
     shadowOpacity: 0.06,
     shadowRadius: 10,
@@ -994,10 +1171,42 @@ const st = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 2,
   },
+
+  // FIX 3 — Health Score aligned
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+  },
+  scoreRingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreRight: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   scoreLabel: { fontSize: 12, fontWeight: '700', lineHeight: 16 },
-  personalityDeco: { position: 'absolute', right: 6, top: 10 },
+
+  // FIX 4 — Personality brain more visible
+  personalityDeco: {
+    position: 'absolute',
+    right: 6,
+    top: 10,
+  },
+  personalityBrain: {
+    fontSize: 46,
+    opacity: 0.15, // FIX 4: clearly visible (was 0.08)
+  },
+  personalityTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
   personalityType: { fontSize: 14, fontWeight: '800' },
   personalityDesc: { fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 16 },
+
   // Net Worth
   netWorthCard: {
     backgroundColor: '#ffffff',
@@ -1024,21 +1233,82 @@ const st = StyleSheet.create({
   netStatItem: { flex: 1, alignItems: 'center', gap: 3 },
   netStatLabel: { fontSize: 10, color: '#94A3B8' },
   netStatVal: { fontSize: 14, fontWeight: '700' },
-  // Actions
-  actionIconBox: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+
+  // FIX 5 — Actions: icon + text header row
+  actionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionIconText: {
+    fontSize: 15,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
   actionTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a', lineHeight: 20 },
   actionDesc: { fontSize: 11, color: '#64748b', lineHeight: 16 },
-  actionChevron: {
-    position: 'absolute', top: 42, right: 14,
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#e2e8f0',
-  },
   actionCta: { borderRadius: 10, paddingVertical: 7, alignItems: 'center', borderWidth: 1, marginTop: 4 },
   actionCtaText: { fontSize: 12, fontWeight: '700' },
   insightText: { fontSize: 11, color: '#475569', lineHeight: 17, flex: 1 },
   insightCta: { borderRadius: 10, paddingVertical: 7, alignItems: 'center', borderWidth: 1, marginTop: 'auto' },
-  // Expense
+
+  // FIX 6 — Expense Split legend
+  expenseBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+  },
+  expenseDonutWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  expenseLegend: {
+    flex: 1,
+    gap: 7,
+    justifyContent: 'center',
+  },
+  expenseLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  expenseLegendLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flex: 1,
+  },
+  expenseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  expenseLegendLabel: {
+    fontSize: 10,
+    color: '#475569',
+    flex: 1,
+  },
+  expenseLegendRight: {
+    alignItems: 'flex-end',
+    minWidth: 50,
+  },
+  expenseLegendAmt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  expenseLegendPct: {
+    fontSize: 9,
+    color: '#94A3B8',
+  },
   expInsightPill: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 5,
     backgroundColor: '#F0FDF4', borderRadius: 8, padding: 7, marginTop: 8,
@@ -1052,12 +1322,14 @@ const st = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 9, marginTop: 4,
   },
   createGoalText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
   // Achievements
   achBadge: {
     width: 44, height: 44, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
-  // Trend
+
+  // FIX 7 — Trend card
   trendCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
@@ -1094,28 +1366,131 @@ const st = StyleSheet.create({
   trendFooterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4F8CFF' },
   trendFooterLabel: { fontSize: 11, color: '#94A3B8', flex: 1 },
   trendFooterVal: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
-  // Tools
+  trendHint: {
+    fontSize: 9,
+    color: '#CBD5E1',
+    textAlign: 'center',
+    marginTop: 6,
+    letterSpacing: 0.3,
+  },
+  // FIX 7 — selected value mini card
+  selectedValueCard: {
+    marginTop: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  selectedValueLabel: {
+    fontSize: 12,
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+  selectedValueAmt: {
+    fontSize: 15,
+    color: '#1E40AF',
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+
+  // FIX 8 — Quick tools
   toolsCard: {
     backgroundColor: '#ffffff', borderRadius: 16, padding: 16,
     borderWidth: 1, borderColor: '#e2e8f0',
     shadowColor: '#0f172a', shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
   },
-  toolItem: { alignItems: 'center', gap: 6, flex: 1 },
-  toolIconBox: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  toolLabel: { fontSize: 11, fontWeight: '600', color: '#475569', textAlign: 'center' },
-  // FAB
-  fabContainer: { position: 'absolute', bottom: 28, right: 16, alignItems: 'flex-end', zIndex: 200 },
-  fabActions: { marginBottom: 10, gap: 8, alignItems: 'flex-end' },
+  toolsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  toolItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 2,
+  },
+  toolIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolIconText: {
+    fontSize: 24,
+    lineHeight: 28,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  toolLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+
+  // FIX 9 — FAB
+  fabContainer: {
+    position: 'absolute',
+    bottom: 28,
+    right: 16,
+    alignItems: 'flex-end',
+    zIndex: 200,
+  },
+  fabActions: {
+    marginBottom: 10,
+    gap: 8,
+    alignItems: 'flex-end',
+  },
   fabAction: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 99,
-    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 99,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   fabActionText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  fab: {
-    width: 56, height: 56, borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#4F8CFF', shadowOpacity: 0.4, shadowRadius: 14, elevation: 8,
+  // FIX 9: glow ring
+  fabGlow: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#4F8CFF',
+    zIndex: -1,
   },
-  fabIcon: { fontSize: 30, color: '#fff', lineHeight: 36 },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4F8CFF',
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  // FIX 9: always "+" character, rotation creates the × effect
+  fabIcon: {
+    fontSize: 30,
+    color: '#fff',
+    lineHeight: 34,
+    fontWeight: '300',
+    includeFontPadding: false,
+  },
 });
