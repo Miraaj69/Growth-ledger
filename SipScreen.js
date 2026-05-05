@@ -7,6 +7,39 @@ import {
   StyleSheet, Animated, Alert, FlatList, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { Platform } from 'react-native';
+
+// ── GlassCard: BlurView on iOS, solid fallback on Android ──
+function GlassCard({ children, style, intensity = 40, tint = 'dark' }) {
+  if (Platform.OS === 'ios') {
+    return (
+      <BlurView
+        intensity={intensity}
+        tint={tint}
+        style={[{
+          borderRadius: 18,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.08)',
+        }, style]}
+      >
+        {children}
+      </BlurView>
+    );
+  }
+  // Android fallback — rgba solid
+  return (
+    <View style={[{
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: 'rgba(30,30,30,0.85)',
+    }, style]}>
+      {children}
+    </View>
+  );
+}
 import { useTheme } from './ThemeContext';
 import { fmt, sipMaturity, sipCAGR, inflAdj } from './helpers';
 
@@ -517,13 +550,13 @@ const SipDetailScreen = memo(({ sip, idx, dispatch, onClose, onEdit, T }) => {
           <BarChart data={projData} color={color} T={T} />
 
           {/* Projected value callout */}
-          <View style={[sty.projectionCallout, { backgroundColor: color + '12', borderColor: color + '30' }]}>
-            <Text style={{ fontSize: 13, color: T.t3 }}>Your investment can grow to</Text>
+          <GlassCard style={[sty.projectionCallout, { backgroundColor: color + '10', borderColor: color + '30', alignItems: 'center' }]} intensity={35} tint="dark">
+            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>Your investment can grow to</Text>
             <Text style={[{ fontSize: 26, fontWeight: '900', color: color, marginVertical: 2 }]}>
               ₹{finalValue.toLocaleString('en-IN')}
             </Text>
-            <Text style={{ fontSize: 12, color: T.t3 }}>in {chartMode === 'All' ? `${Math.round(d.months / 12)} years` : chartMode}</Text>
-          </View>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>in {chartMode === 'All' ? `${Math.round(d.months / 12)} years` : chartMode}</Text>
+          </GlassCard>
 
           {/* Insight box */}
           <View style={[sty.detailInsightBox, { backgroundColor: '#4F8CFF0E', borderColor: '#4F8CFF30' }]}>
@@ -1273,7 +1306,7 @@ export const SipTab = memo(({ s, dispatch }) => {
           )}
         </LinearGradient>
         {/* Est. 10Y Corpus */}
-        <LinearGradient colors={['#0c1a4e', '#1a3080']} style={[sty.headerStatCard, { flex: 1 }]}>
+        <GlassCard style={[sty.headerStatCard, { flex: 1, backgroundColor: 'rgba(79,140,255,0.08)', padding: 14 }]} intensity={50} tint="dark">
           <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Est. 10Y Corpus</Text>
           <Text style={{ fontSize: 22, fontWeight: '900', color: '#fff' }}>
             ₹{(sips.reduce((a, x) => a + sipMaturity(x.amount || 0, 120, x.returns || 12), 0)).toLocaleString('en-IN')}
@@ -1281,7 +1314,7 @@ export const SipTab = memo(({ s, dispatch }) => {
           <Text style={{ fontSize: 11, color: '#4F8CFF', marginTop: 4, fontWeight: '600' }}>
             ▲ ₹{corpusGrowth.toLocaleString('en-IN')} (15.6%)
           </Text>
-        </LinearGradient>
+        </GlassCard>
       </View>
 
       {/* ── AUTO-ADJUST MODE strip ── */}
@@ -1357,7 +1390,7 @@ export const SipTab = memo(({ s, dispatch }) => {
 
       {/* ── SMART INSIGHTS SECTION ── */}
       {sips.length > 0 && (
-        <View style={[sty.smartInsightsCard, { backgroundColor: T.l1, borderColor: T.border }]}>
+        <GlassCard style={[sty.smartInsightsCard, { backgroundColor: 'rgba(79,140,255,0.06)', borderColor: 'rgba(79,140,255,0.18)' }]} intensity={30} tint="dark">
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={{ fontSize: 16 }}>💡</Text>
@@ -1376,7 +1409,7 @@ export const SipTab = memo(({ s, dispatch }) => {
               </Text>
             </View>
           </View>
-        </View>
+        </GlassCard>
       )}
 
       {/* ── SORT MODAL ── */}
@@ -1430,6 +1463,7 @@ const sty = StyleSheet.create({
   // Wisdom
   wisdomCard: {
     borderRadius: 16, padding: 16, borderWidth: 1, overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
   },
   wisdomAvatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
@@ -1466,6 +1500,7 @@ const sty = StyleSheet.create({
   // SIP Card
   sipCard: {
     borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16, elevation: 4,
   },
   sipFundName:  { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
