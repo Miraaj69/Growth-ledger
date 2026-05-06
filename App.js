@@ -29,6 +29,7 @@ import CashFlowScreen    from './CashFlowScreen';
 import GrowthScreen      from './GrowthScreen';
 import GoalsScreen       from './GoalsScreen';
 import SplashAnimScreen  from './SplashAnimScreen';
+import CustomSplash      from './components/SplashScreen';
 import CalculatorsScreen from './CalculatorsScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -246,7 +247,7 @@ export default function App() {
   if (!fontsLoaded && !fontError) return null;
 
   if (showSplash) {
-    return <SplashAnimScreen onDone={() => setShowSplash(false)} />;
+    return <CustomSplash onFinish={() => setShowSplash(false)} />;
   }
 
   return (

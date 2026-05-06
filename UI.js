@@ -6,9 +6,10 @@
 import React, { useRef, memo, useCallback } from 'react';
 import {
   View, Text, Pressable, TextInput,
-  Animated, ActivityIndicator, Platform,
+  Animated, ActivityIndicator, Platform, StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from './ThemeContext';
 import { SPACING as SP, RADIUS as RD, SHADOW as SDW } from './theme';
@@ -30,21 +31,47 @@ const usePress = (scaleVal = 0.974) => {
 // ══════════════════════════════════════════════════════════
 // CARD — animated press scale + theme-aware surface
 // ══════════════════════════════════════════════════════════
-export const Card = memo(({ children, style, onPress, glow }) => {
+export const Card = memo(({ children, style, onPress, glow, intensity = 40 }) => {
   const { T } = useTheme();
   const { scale, onIn, onOut } = usePress();
+  const isIOS = Platform.OS === 'ios';
+  const isDark = T.mode !== 'light';
+
   const inner = (
     <Animated.View style={[{
-      backgroundColor: T.l1,
       borderRadius:    RD.xl,
-      padding:         SP.md,
+      overflow:        'hidden',
       borderWidth:     1,
       borderColor:     glow ? '#4F8CFF44' : T.border,
       ...SDW.card,
     }, style, { transform: [{ scale }] }]}>
-      {children}
+
+      {/* iOS: real blur glass effect */}
+      {isIOS && isDark && (
+        <BlurView
+          intensity={intensity}
+          tint="dark"
+          style={{ ...StyleSheet.absoluteFillObject }}
+        />
+      )}
+
+      {/* Gradient overlay — works on both platforms */}
+      <LinearGradient
+        colors={
+          isDark
+            ? ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']
+            : ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']
+        }
+        style={{ ...StyleSheet.absoluteFillObject }}
+      />
+
+      {/* Content on top */}
+      <View style={{ backgroundColor: 'transparent' }}>
+        {children}
+      </View>
     </Animated.View>
   );
+
   return onPress ? (
     <Pressable
       onPress={() => { tap(); onPress(); }}
