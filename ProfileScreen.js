@@ -177,7 +177,7 @@ export default function ProfileScreen() {
     );
   };
 
-  const themeLabel = mode === 'dark' ? '🌙 Dark' : mode === 'amoled' ? '⬛ AMOLED' : '☀️ Light';
+  const themeLabel = mode === 'dark' ? '🌙 Dark' : mode === 'amoled' ? '⬛ AMOLED' : mode === 'golden' ? '✨ Golden' : '☀️ Light';
 
   const handleHolidayImport = async () => {
     try {

@@ -29,7 +29,6 @@ import CashFlowScreen    from './CashFlowScreen';
 import GrowthScreen      from './GrowthScreen';
 import GoalsScreen       from './GoalsScreen';
 import SplashAnimScreen  from './SplashAnimScreen';
-import CustomSplash      from './components/SplashScreen';
 import CalculatorsScreen from './CalculatorsScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -138,6 +137,7 @@ function TabBar({ state, navigation }) {
   const barBg =
     T.mode === 'amoled' ? '#000000' :
     T.mode === 'light'  ? '#ffffff' :
+    T.mode === 'golden' ? '#1A1200' :
     'rgba(10,15,28,0.98)';
 
   return (
@@ -247,7 +247,7 @@ export default function App() {
   if (!fontsLoaded && !fontError) return null;
 
   if (showSplash) {
-    return <CustomSplash onFinish={() => setShowSplash(false)} />;
+    return <SplashAnimScreen onDone={() => setShowSplash(false)} />;
   }
 
   return (

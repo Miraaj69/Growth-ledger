@@ -170,11 +170,12 @@ function HeroCard({ d, s, theme }) {
 // FIX 3: ScoreRing now vertically centered in health score card
 // FIX 4: Brain emoji opacity increased to 0.15 (more visible)
 function ScorePersonalityRow({ score, personality, isDark }) {
+  const { T } = useTheme();
   return (
     <View style={st.row2}>
       {/* FIX 3 — Health Score: ring centered with flexbox */}
-      <View style={[st.halfCard]}>
-        <Text style={st.miniLabel}>HEALTH SCORE</Text>
+      <View style={[st.halfCard, { backgroundColor: T.l1, borderColor: T.border }]}>
+        <Text style={[st.miniLabel, { color: T.t3 }]}>HEALTH SCORE</Text>
         {/* FIX 3: outer row with alignItems center, ring + text side by side */}
         <View style={st.scoreRow}>
           <View style={st.scoreRingWrap}>
@@ -192,17 +193,17 @@ function ScorePersonalityRow({ score, personality, isDark }) {
       </View>
 
       {/* FIX 4 — Personality: brain more visible */}
-      <View style={[st.halfCard, { overflow: 'hidden' }]}>
+      <View style={[st.halfCard, { overflow: 'hidden', backgroundColor: T.l1, borderColor: T.border }]}>
         {/* FIX 4: opacity 0.15 — clearly visible but decorative */}
         <View style={st.personalityDeco}>
           <Text style={st.personalityBrain}>🧠</Text>
         </View>
-        <Text style={st.miniLabel}>PERSONALITY</Text>
+        <Text style={[st.miniLabel, { color: T.t3 }]}>PERSONALITY</Text>
         <View style={st.personalityTypeRow}>
           <Text style={{ fontSize: 12 }}>📈</Text>
           <Text style={[st.personalityType, { color: personality.color }]}> {personality.type}</Text>
         </View>
-        <Text style={st.personalityDesc}>{personality.desc || 'Boost your SIP now.'}</Text>
+        <Text style={[st.personalityDesc, { color: T.t2 }]}>{personality.desc || 'Boost your SIP now.'}</Text>
       </View>
     </View>
   );
@@ -210,35 +211,36 @@ function ScorePersonalityRow({ score, personality, isDark }) {
 
 // ─── Net Worth Card ───────────────────────────────────────
 function NetWorthCard({ d }) {
+  const { T } = useTheme();
   return (
-    <View style={st.netWorthCard}>
-      <Text style={st.sectionTitle}>NET WORTH OVERVIEW</Text>
+    <View style={[st.netWorthCard, { backgroundColor: T.l1, borderColor: T.border }]}>
+      <Text style={[st.sectionTitle, { color: T.t3 }]}>NET WORTH OVERVIEW</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
         <View style={st.netWorthLeft}>
-          <View style={st.walletBadge}>
+          <View style={[st.walletBadge, { backgroundColor: T.l2 }]}>
             <Text style={{ fontSize: 20 }}>👛</Text>
           </View>
           <View style={{ marginLeft: 10 }}>
-            <Text style={st.netWorthAmount}>{fmtShort(d.netWorth)}</Text>
-            <Text style={st.netWorthSub}>Net Worth</Text>
+            <Text style={[st.netWorthAmount, { color: T.t1 }]}>{fmtShort(d.netWorth)}</Text>
+            <Text style={[st.netWorthSub, { color: T.t2 }]}>Net Worth</Text>
           </View>
         </View>
-        <View style={st.netDivider} />
+        <View style={[st.netDivider, { backgroundColor: T.border }]} />
         <View style={{ flex: 1, paddingLeft: 14 }}>
-          <Text style={st.netIncomeAmt}>{fmt(d.totalIncome)}</Text>
-          <Text style={st.netIncomeSub}>This Month Income</Text>
-          <Text style={[st.netIncomeSub, { marginTop: 2 }]}>{(d.incomes || []).length} Income sources</Text>
+          <Text style={[st.netIncomeAmt, { color: T.t1 }]}>{fmt(d.totalIncome)}</Text>
+          <Text style={[st.netIncomeSub, { color: T.t2 }]}>This Month Income</Text>
+          <Text style={[st.netIncomeSub, { marginTop: 2, color: T.t2 }]}>{(d.incomes || []).length} Income sources</Text>
         </View>
       </View>
 
-      <View style={[st.netStatsRow, { borderTopColor: '#e2e8f0' }]}>
+      <View style={[st.netStatsRow, { borderTopColor: T.border }]}>
         {[
-          { l: 'Assets', v: fmt(d.totalAssets), c: '#0f172a' },
+          { l: 'Assets', v: fmt(d.totalAssets), c: T.t1 },
           { l: 'Debts', v: fmt(d.debtTotal), c: '#EF4444' },
-          { l: 'Net Worth', v: fmt(d.netWorth), c: '#0f172a' },
+          { l: 'Net Worth', v: fmt(d.netWorth), c: T.t1 },
         ].map(({ l, v, c }, i) => (
-          <View key={l} style={[st.netStatItem, i < 2 && { borderRightWidth: 1, borderRightColor: '#e2e8f0' }]}>
-            <Text style={st.netStatLabel}>{l}</Text>
+          <View key={l} style={[st.netStatItem, i < 2 && { borderRightWidth: 1, borderRightColor: T.border }]}>
+            <Text style={[st.netStatLabel, { color: T.t3 }]}>{l}</Text>
             <Text style={[st.netStatVal, { color: c }]}>{v}</Text>
           </View>
         ))}
@@ -250,13 +252,14 @@ function NetWorthCard({ d }) {
 // ─── FIX 5: Next Action + AI Insight Row ──────────────────
 // Icon and text are now in a row with proper alignItems: 'center'
 function ActionInsightRow({ action, aiInsights, navigation }) {
+  const { T } = useTheme();
   const [showAll, setShowAll] = useState(false);
   const firstInsight = aiInsights[0];
 
   return (
     <View style={st.row2}>
       <Pressable
-        style={[st.halfCard, { gap: 8 }]}
+        style={[st.halfCard, { gap: 8, backgroundColor: T.l1, borderColor: T.border }]}
         onPress={() => navigation?.navigate?.(action.screen || 'Goals')}
       >
         {/* FIX 5 — Icon + label in a flex row, aligned center */}
@@ -266,8 +269,8 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
           </View>
           <Text style={[st.miniLabel, { color: action.color || '#22C55E', flex: 1 }]}>NEXT ACTION</Text>
         </View>
-        <Text style={st.actionTitle}>{action.title || 'Start a SIP today'}</Text>
-        <Text style={st.actionDesc} numberOfLines={2}>{action.desc || '₹500/mo in Nifty 50 = wealth over time.'}</Text>
+        <Text style={[st.actionTitle, { color: T.t1 }]}>{action.title || 'Start a SIP today'}</Text>
+        <Text style={[st.actionDesc, { color: T.t2 }]} numberOfLines={2}>{action.desc || '₹500/mo in Nifty 50 = wealth over time.'}</Text>
         <Pressable
           style={[st.actionCta, { backgroundColor: (action.color || '#22C55E') + '18', borderColor: (action.color || '#22C55E') + '30' }]}
           onPress={() => navigation?.navigate?.(action.screen || 'Goals')}
@@ -276,7 +279,7 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
         </Pressable>
       </Pressable>
 
-      <View style={[st.halfCard, { gap: 8 }]}>
+      <View style={[st.halfCard, { gap: 8, backgroundColor: T.l1, borderColor: T.border }]}>
         {/* FIX 5 — consistent alignment for insight header */}
         <View style={st.actionHeaderRow}>
           <View style={[st.actionIconBox, { backgroundColor: '#A78BFA18' }]}>
@@ -290,7 +293,7 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
           </Pressable>
         </View>
 
-        <Text style={st.insightText} numberOfLines={3}>
+        <Text style={[st.insightText, { color: T.t2 }]} numberOfLines={3}>
           {firstInsight ? `${firstInsight.icon} ${firstInsight.msg}` : '💡 Tip: Add your salary to unlock smarter insights.'}
         </Text>
 
@@ -309,16 +312,15 @@ function ActionInsightRow({ action, aiInsights, navigation }) {
 // Center donut label: black in light, white in dark/amoled
 // Legend aligned with justifyContent and fixed widths
 function ExpenseGoalsRow({ s, d, navigation, isDark }) {
+  const { T } = useTheme();
   const goals = s.goals || [];
-  // FIX 6: center label color by theme
-  const centerLabelColor = isDark ? '#FFFFFF' : '#0f172a';
+  const centerLabelColor = T.t1;
 
   return (
     <View style={st.row2}>
-      <View style={[st.halfCard]}>
-        <Text style={st.sectionTitle}>EXPENSE SPLIT</Text>
+      <View style={[st.halfCard, { backgroundColor: T.l1, borderColor: T.border }]}>
+        <Text style={[st.sectionTitle, { color: T.t3 }]}>EXPENSE SPLIT</Text>
         <View style={st.expenseBody}>
-          {/* Donut */}
           <View style={st.expenseDonutWrap}>
             <DonutChart
               segments={(s.expenses || []).map(e => ({ pct: e.pct, color: e.color }))}
@@ -328,43 +330,40 @@ function ExpenseGoalsRow({ s, d, navigation, isDark }) {
               centerLabelColor={centerLabelColor}
             />
           </View>
-          {/* FIX 6 — legend: perfectly aligned with consistent column widths */}
           <View style={st.expenseLegend}>
             {(s.expenses || []).map((e, i) => (
               <View key={i} style={st.expenseLegendRow}>
-                {/* Left: dot + label */}
                 <View style={st.expenseLegendLeft}>
                   <View style={[st.expenseDot, { backgroundColor: e.color }]} />
-                  <Text style={st.expenseLegendLabel} numberOfLines={1}>{e.label}</Text>
+                  <Text style={[st.expenseLegendLabel, { color: T.t2 }]} numberOfLines={1}>{e.label}</Text>
                 </View>
-                {/* Right: amount + pct stacked */}
                 <View style={st.expenseLegendRight}>
-                  <Text style={st.expenseLegendAmt}>
+                  <Text style={[st.expenseLegendAmt, { color: T.t1 }]}>
                     {fmt(d.salary * e.pct / 100)}
                   </Text>
-                  <Text style={st.expenseLegendPct}>{e.pct}%</Text>
+                  <Text style={[st.expenseLegendPct, { color: T.t3 }]}>{e.pct}%</Text>
                 </View>
               </View>
             ))}
           </View>
         </View>
-        <View style={st.expInsightPill}>
+        <View style={[st.expInsightPill, { backgroundColor: T.l2 }]}>
           <Text style={{ fontSize: 10 }}>✅</Text>
-          <Text style={st.expInsightText} numberOfLines={2}>
+          <Text style={[st.expInsightText, { color: T.t2 }]} numberOfLines={2}>
             Wants spending well controlled — saving ₹0/mo extra
           </Text>
         </View>
       </View>
 
-      <View style={[st.halfCard, { alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={[st.sectionTitle, { alignSelf: 'flex-start' }]}>FINANCIAL GOALS</Text>
+      <View style={[st.halfCard, { alignItems: 'center', justifyContent: 'center', backgroundColor: T.l1, borderColor: T.border }]}>
+        <Text style={[st.sectionTitle, { alignSelf: 'flex-start', color: T.t3 }]}>FINANCIAL GOALS</Text>
         {goals.length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 16, gap: 8 }}>
             <Text style={{ fontSize: 36 }}>🎯</Text>
-            <Text style={st.emptyGoalTitle}>No goals yet</Text>
-            <Text style={st.emptyGoalSub}>Set your first goal and track your progress.</Text>
+            <Text style={[st.emptyGoalTitle, { color: T.t1 }]}>No goals yet</Text>
+            <Text style={[st.emptyGoalSub, { color: T.t2 }]}>Set your first goal and track your progress.</Text>
             <Pressable
-              style={st.createGoalBtn}
+              style={[st.createGoalBtn, { backgroundColor: '#4F8CFF20', borderColor: '#4F8CFF40' }]}
               onPress={() => navigation?.navigate?.('Goals')}
             >
               <Text style={st.createGoalText}>Create First Goal →</Text>
@@ -376,7 +375,7 @@ function ExpenseGoalsRow({ s, d, navigation, isDark }) {
             return (
               <View key={g.id || i} style={{ width: '100%', marginTop: 8 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#0f172a' }} numberOfLines={1}>{g.title}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: T.t1 }} numberOfLines={1}>{g.title}</Text>
                   <Text style={{ fontSize: 12, fontWeight: '700', color: g.color || '#4F8CFF' }}>{pct}%</Text>
                 </View>
                 <Bar value={g.saved || 0} total={Math.max(g.target || 1, 1)} color={g.color || '#4F8CFF'} h={5} />
@@ -391,11 +390,12 @@ function ExpenseGoalsRow({ s, d, navigation, isDark }) {
 
 // ─── Achievements + Snapshot Row ─────────────────────────
 function AchievementsSnapshotRow({ achievements, d }) {
+  const { T } = useTheme();
   const nextUnlocked = achievements.find(a => !a.unlocked);
   return (
     <View style={st.row2}>
-      <View style={[st.halfCard]}>
-        <Text style={st.sectionTitle}>ACHIEVEMENTS</Text>
+      <View style={[st.halfCard, { backgroundColor: T.l1, borderColor: T.border }]}>
+        <Text style={[st.sectionTitle, { color: T.t3 }]}>ACHIEVEMENTS</Text>
         {nextUnlocked && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
             <Text style={{ fontSize: 10 }}>🏆</Text>
@@ -404,15 +404,15 @@ function AchievementsSnapshotRow({ achievements, d }) {
             </Text>
           </View>
         )}
-        <Text style={{ fontSize: 10, color: '#94A3B8', marginBottom: 8 }}>
+        <Text style={{ fontSize: 10, color: T.t3, marginBottom: 8 }}>
           {achievements.filter(a => a.unlocked).length} / {achievements.length} unlocked
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {achievements.map((a, i) => (
             <View key={i} style={{ alignItems: 'center' }}>
               <View style={[st.achBadge, {
-                backgroundColor: a.unlocked ? a.color + '18' : '#f1f5f9',
-                borderColor: a.unlocked ? a.color + '40' : '#e2e8f0',
+                backgroundColor: a.unlocked ? a.color + '18' : T.l3,
+                borderColor: a.unlocked ? a.color + '40' : T.border,
                 opacity: a.unlocked ? 1 : 0.4,
               }]}>
                 <Text style={{ fontSize: 16 }}>{a.icon}</Text>
@@ -425,8 +425,8 @@ function AchievementsSnapshotRow({ achievements, d }) {
         </View>
       </View>
 
-      <View style={[st.halfCard]}>
-        <Text style={st.sectionTitle}>FINANCIAL SNAPSHOT</Text>
+      <View style={[st.halfCard, { backgroundColor: T.l1, borderColor: T.border }]}>
+        <Text style={[st.sectionTitle, { color: T.t3 }]}>FINANCIAL SNAPSHOT</Text>
         <View style={{ gap: 10, marginTop: 10 }}>
           {[
             { l: 'SIP', v: d.sipTotal > 0 ? fmtShort(d.sipTotal) : 'None', c: d.sipTotal > 0 ? '#22C55E' : '#94A3B8' },
@@ -434,7 +434,7 @@ function AchievementsSnapshotRow({ achievements, d }) {
             { l: 'Debt', v: d.debtTotal > 0 ? fmtShort(d.debtTotal) : '₹0', c: '#A78BFA' },
           ].map(({ l, v, c }) => (
             <View key={l} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 12, color: '#64748b' }}>{l}</Text>
+              <Text style={{ fontSize: 12, color: T.t2 }}>{l}</Text>
               <Text style={{ fontSize: 13, fontWeight: '700', color: c }}>{v}</Text>
             </View>
           ))}
@@ -598,6 +598,7 @@ const LineChart = memo(({ data, color, height, selectedIndex, onSelectIndex }) =
 });
 
 function EarningsTrendCard({ s, d }) {
+  const { T } = useTheme();
   const [viewMode, setViewMode] = useState('monthly');
   const [selectedIndex, setSelectedIndex] = useState(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -661,18 +662,18 @@ function EarningsTrendCard({ s, d }) {
   const hasData = chartData.some(b => b.v > 0);
 
   return (
-    <View style={st.trendCard}>
+    <View style={[st.trendCard, { backgroundColor: T.l1, borderColor: T.border }]}>
       <View style={st.trendHeader}>
         <View>
-          <Text style={st.sectionTitle}>EARNINGS TREND</Text>
+          <Text style={[st.sectionTitle, { color: T.t3 }]}>EARNINGS TREND</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 4 }}>
-            <Text style={st.trendYtdVal}>{fmtShort(summaryValue)}</Text>
-            <Text style={st.trendYtdLabel}>{summaryLabel}</Text>
+            <Text style={[st.trendYtdVal, { color: T.t1 }]}>{fmtShort(summaryValue)}</Text>
+            <Text style={[st.trendYtdLabel, { color: T.t2 }]}>{summaryLabel}</Text>
           </View>
         </View>
 
-        <View style={st.trendToggleWrap}>
-          <Animated.View style={[st.trendPill, { left: pillLeft, width: PILL_W }]} />
+        <View style={[st.trendToggleWrap, { backgroundColor: T.l2 }]}>
+          <Animated.View style={[st.trendPill, { left: pillLeft, width: PILL_W, backgroundColor: T.l3 }]} />
           {TOGGLE_TABS.map((tab) => {
             const isActive = viewMode === tab.toLowerCase();
             return (
@@ -681,7 +682,7 @@ function EarningsTrendCard({ s, d }) {
                 onPress={() => handleToggle(tab.toLowerCase())}
                 style={[st.trendTabBtn, { width: PILL_W }]}
               >
-                <Text style={[st.trendTabText, isActive && st.trendTabTextActive]}>
+                <Text style={[st.trendTabText, { color: T.t2 }, isActive && { color: T.t1, fontWeight: '700' }]}>
                   {tab}
                 </Text>
               </Pressable>
@@ -702,7 +703,7 @@ function EarningsTrendCard({ s, d }) {
         ) : (
           <View style={st.trendEmpty}>
             <Text style={{ fontSize: 28, marginBottom: 6 }}>📊</Text>
-            <Text style={st.trendEmptyText}>
+            <Text style={[st.trendEmptyText, { color: T.t2 }]}>
               {viewMode === 'monthly'
                 ? 'No monthly data yet — add your salary to begin'
                 : 'No weekly data yet — add earnings to see trends'}
@@ -716,22 +717,23 @@ function EarningsTrendCard({ s, d }) {
         <Animated.View style={[st.selectedValueCard, {
           opacity: valueCardOpacity,
           transform: [{ scale: valueCardScale }],
+          backgroundColor: T.l2,
         }]}>
-          <Text style={st.selectedValueLabel}>{selectedLabel}</Text>
-          <Text style={st.selectedValueAmt}>{selectedValue}</Text>
+          <Text style={[st.selectedValueLabel, { color: T.t2 }]}>{selectedLabel}</Text>
+          <Text style={[st.selectedValueAmt, { color: T.t1 }]}>{selectedValue}</Text>
         </Animated.View>
       )}
 
       {hasData && !selectedPoint && (
         <View style={st.trendFooter}>
           <View style={st.trendFooterDot} />
-          <Text style={st.trendFooterLabel}>{activeLabel}</Text>
-          <Text style={st.trendFooterVal}>{activeValue}</Text>
+          <Text style={[st.trendFooterLabel, { color: T.t2 }]}>{activeLabel}</Text>
+          <Text style={[st.trendFooterVal, { color: T.t1 }]}>{activeValue}</Text>
         </View>
       )}
 
       {hasData && (
-        <Text style={st.trendHint}>Tap on chart to see value</Text>
+        <Text style={[st.trendHint, { color: T.t3 }]}>Tap on chart to see value</Text>
       )}
     </View>
   );
@@ -739,6 +741,7 @@ function EarningsTrendCard({ s, d }) {
 
 // ─── FIX 8: Quick Tools Grid — icon alignment fixed ────────
 function QuickToolsGrid({ navigation }) {
+  const { T } = useTheme();
   const tools = [
     { icon: '🎯', label: 'Goal Planner', screen: 'Goals',     color: '#EF4444' },
     { icon: '📊', label: 'Simulator',    screen: 'Simulator', color: '#4F8CFF' },
@@ -746,8 +749,8 @@ function QuickToolsGrid({ navigation }) {
     { icon: '🧠', label: 'AI Decisions', screen: 'Decisions', color: '#A78BFA' },
   ];
   return (
-    <View style={st.toolsCard}>
-      <Text style={[st.sectionTitle, { marginBottom: 16 }]}>QUICK TOOLS</Text>
+    <View style={[st.toolsCard, { backgroundColor: T.l1, borderColor: T.border }]}>
+      <Text style={[st.sectionTitle, { marginBottom: 16, color: T.t3 }]}>QUICK TOOLS</Text>
       {/* FIX 8: Use flex row with equal flex, icon centered via alignItems+justifyContent */}
       <View style={st.toolsGrid}>
         {tools.map(tool => (
@@ -760,7 +763,7 @@ function QuickToolsGrid({ navigation }) {
             <View style={[st.toolIconBox, { backgroundColor: tool.color + '14' }]}>
               <Text style={st.toolIconText}>{tool.icon}</Text>
             </View>
-            <Text style={st.toolLabel} numberOfLines={2}>{tool.label}</Text>
+            <Text style={[st.toolLabel, { color: T.t2 }]} numberOfLines={2}>{tool.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -811,14 +814,14 @@ export default function HomeScreen({ navigation }) {
   const userName = s.userName || 'Miraj';
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F1F5F9' }}>
+    <View style={{ flex: 1, backgroundColor: T.bg }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
 
         {/* ── HEADER ── */}
-        <View style={st.header}>
+        <View style={[st.header, { backgroundColor: T.bg }]}>
           <View style={{ flex: 1 }}>
-            <Text style={st.greeting}>{greeting}, {userName} 👋</Text>
-            <Text style={st.greetingSub}>{"Let's grow your wealth 🚀"}</Text>
+            <Text style={[st.greeting, { color: T.t1 }]}>{greeting}, {userName} 👋</Text>
+            <Text style={[st.greetingSub, { color: T.t2 }]}>{"Let's grow your wealth 🚀"}</Text>
           </View>
           {/* FIX 1: streak pill + avatar in a column on right */}
           <StreakAvatarRow
@@ -829,8 +832,8 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* ── DASHBOARD TITLE + MONTH PICKER ── */}
-        <View style={st.dashRow}>
-          <Text style={st.dashTitle}>Dashboard</Text>
+        <View style={[st.dashRow, { backgroundColor: T.bg }]}>
+          <Text style={[st.dashTitle, { color: T.t1 }]}>Dashboard</Text>
           <MonthPicker
             month={s.currentMonth || 0}
             year={s.currentYear || new Date().getFullYear()}
@@ -954,18 +957,18 @@ const st = StyleSheet.create({
     paddingTop: 56,
     paddingHorizontal: 16,
     paddingBottom: 8,
-    backgroundColor: '#F1F5F9',
+    // backgroundColor applied inline via T.bg
   },
   greeting: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0f172a',
     letterSpacing: -0.3,
+    // color applied inline via T.t1
   },
   greetingSub: {
     fontSize: 13,
-    color: '#64748b',
     marginTop: 2,
+    // color applied inline via T.t2
   },
 
   // FIX 1 — streak + avatar
@@ -1004,14 +1007,14 @@ const st = StyleSheet.create({
   avatarImage: {
     width: 48,
     height: 48,
-    borderRadius: 0, // FIX 1: borderRadius 0 on image as requested
-    backgroundColor: '#EFF6FF',
+    borderRadius: 0,
+    backgroundColor: 'rgba(79,140,255,0.15)',
   },
   avatarDefault: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: 'rgba(79,140,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1027,13 +1030,13 @@ const st = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 14,
     paddingTop: 4,
-    backgroundColor: '#F1F5F9',
+    // backgroundColor applied inline via T.bg
   },
   dashTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#0f172a',
     letterSpacing: -0.5,
+    // color applied inline via T.t1
   },
   section: {
     paddingHorizontal: 16,
@@ -1146,30 +1149,29 @@ const st = StyleSheet.create({
   row2: { flexDirection: 'row', gap: 10 },
   halfCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 2,
+    // backgroundColor and borderColor applied inline via T
   },
   miniLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94A3B8',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
+    // color applied inline via T.t3
   },
   sectionTitle: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 2,
+    // color applied inline via T.t3
   },
 
   // FIX 3 — Health Score aligned
@@ -1205,33 +1207,33 @@ const st = StyleSheet.create({
     marginTop: 6,
   },
   personalityType: { fontSize: 14, fontWeight: '800' },
-  personalityDesc: { fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 16 },
+  personalityDesc: { fontSize: 11, marginTop: 4, lineHeight: 16 },
 
   // Net Worth
   netWorthCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 2,
+    // backgroundColor and borderColor applied inline via T
   },
   netWorthLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   walletBadge: {
     width: 44, height: 44, borderRadius: 12,
-    backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
+    // backgroundColor applied inline via T.l2
   },
-  netWorthAmount: { fontSize: 22, fontWeight: '800', color: '#0f172a', letterSpacing: -0.5 },
-  netWorthSub: { fontSize: 11, color: '#64748b', marginTop: 1 },
-  netDivider: { width: 1, height: 48, backgroundColor: '#e2e8f0', marginHorizontal: 14 },
+  netWorthAmount: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  netWorthSub: { fontSize: 11, marginTop: 1 },
+  netDivider: { width: 1, height: 48, marginHorizontal: 14 },
   netIncomeAmt: { fontSize: 18, fontWeight: '800', color: '#4F8CFF' },
-  netIncomeSub: { fontSize: 11, color: '#64748b', marginTop: 1 },
+  netIncomeSub: { fontSize: 11, marginTop: 1 },
   netStatsRow: { flexDirection: 'row', borderTopWidth: 1, marginTop: 14, paddingTop: 12 },
   netStatItem: { flex: 1, alignItems: 'center', gap: 3 },
-  netStatLabel: { fontSize: 10, color: '#94A3B8' },
+  netStatLabel: { fontSize: 10 },
   netStatVal: { fontSize: 14, fontWeight: '700' },
 
   // FIX 5 — Actions: icon + text header row
@@ -1252,11 +1254,11 @@ const st = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
   },
-  actionTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a', lineHeight: 20 },
-  actionDesc: { fontSize: 11, color: '#64748b', lineHeight: 16 },
+  actionTitle: { fontSize: 14, fontWeight: '800', lineHeight: 20 },
+  actionDesc: { fontSize: 11, lineHeight: 16 },
   actionCta: { borderRadius: 10, paddingVertical: 7, alignItems: 'center', borderWidth: 1, marginTop: 4 },
   actionCtaText: { fontSize: 12, fontWeight: '700' },
-  insightText: { fontSize: 11, color: '#475569', lineHeight: 17, flex: 1 },
+  insightText: { fontSize: 11, lineHeight: 17, flex: 1 },
   insightCta: { borderRadius: 10, paddingVertical: 7, alignItems: 'center', borderWidth: 1, marginTop: 'auto' },
 
   // FIX 6 — Expense Split legend
@@ -1293,8 +1295,8 @@ const st = StyleSheet.create({
   },
   expenseLegendLabel: {
     fontSize: 10,
-    color: '#475569',
     flex: 1,
+    // color applied inline via T.t2
   },
   expenseLegendRight: {
     alignItems: 'flex-end',
@@ -1303,25 +1305,28 @@ const st = StyleSheet.create({
   expenseLegendAmt: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#0f172a',
+    // color applied inline via T.t1
   },
   expenseLegendPct: {
     fontSize: 9,
-    color: '#94A3B8',
+    // color applied inline via T.t3
   },
   expInsightPill: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 5,
-    backgroundColor: '#F0FDF4', borderRadius: 8, padding: 7, marginTop: 8,
-    borderWidth: 1, borderColor: '#DCFCE7',
+    borderRadius: 8, padding: 7, marginTop: 8,
+    borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)',
+    // backgroundColor applied inline via T.l2
   },
   expInsightText: { fontSize: 10, color: '#22C55E', flex: 1, lineHeight: 14 },
-  emptyGoalTitle: { fontSize: 13, fontWeight: '700', color: '#0f172a' },
-  emptyGoalSub: { fontSize: 11, color: '#64748b', textAlign: 'center', lineHeight: 16 },
+  emptyGoalTitle: { fontSize: 13, fontWeight: '700' },
+  emptyGoalSub: { fontSize: 11, textAlign: 'center', lineHeight: 16 },
   createGoalBtn: {
-    backgroundColor: '#4F8CFF', borderRadius: 10,
+    borderRadius: 10,
     paddingHorizontal: 16, paddingVertical: 9, marginTop: 4,
+    borderWidth: 1,
+    // backgroundColor applied inline
   },
-  createGoalText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  createGoalText: { fontSize: 12, fontWeight: '700', color: '#4F8CFF' },
 
   // Achievements
   achBadge: {
@@ -1331,21 +1336,21 @@ const st = StyleSheet.create({
 
   // FIX 7 — Trend card
   trendCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 2,
+    // backgroundColor and borderColor applied inline via T
   },
   trendHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   trendYtdVal: { fontSize: 20, fontWeight: '800', color: '#22C55E', letterSpacing: -0.5 },
-  trendYtdLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '500' },
+  trendYtdLabel: { fontSize: 11, fontWeight: '500' },
   trendToggleWrap: {
-    flexDirection: 'row', backgroundColor: '#F1F5F9',
+    flexDirection: 'row',
+    // backgroundColor applied inline via T.l2
     borderRadius: 10, padding: 2, width: 160, height: 32,
     position: 'relative', alignItems: 'center',
   },
@@ -1355,20 +1360,19 @@ const st = StyleSheet.create({
     shadowColor: '#4F8CFF', shadowOpacity: 0.3, shadowRadius: 6, elevation: 3,
   },
   trendTabBtn: { alignItems: 'center', justifyContent: 'center', height: 28, zIndex: 1 },
-  trendTabText: { fontSize: 11, fontWeight: '600', color: '#94A3B8' },
+  trendTabText: { fontSize: 11, fontWeight: '600' },
   trendTabTextActive: { color: '#ffffff', fontWeight: '700' },
   trendEmpty: { alignItems: 'center', paddingVertical: 24 },
-  trendEmptyText: { fontSize: 12, color: '#94A3B8', textAlign: 'center', lineHeight: 18, maxWidth: 220 },
+  trendEmptyText: { fontSize: 12, textAlign: 'center', lineHeight: 18, maxWidth: 220 },
   trendFooter: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(128,128,128,0.12)',
   },
   trendFooterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4F8CFF' },
-  trendFooterLabel: { fontSize: 11, color: '#94A3B8', flex: 1 },
-  trendFooterVal: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
+  trendFooterLabel: { fontSize: 11, flex: 1 },
+  trendFooterVal: { fontSize: 14, fontWeight: '800' },
   trendHint: {
     fontSize: 9,
-    color: '#CBD5E1',
     textAlign: 'center',
     marginTop: 6,
     letterSpacing: 0.3,
@@ -1376,7 +1380,6 @@ const st = StyleSheet.create({
   // FIX 7 — selected value mini card
   selectedValueCard: {
     marginTop: 12,
-    backgroundColor: '#EFF6FF',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -1384,25 +1387,27 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: 'rgba(79,140,255,0.25)',
+    // backgroundColor applied inline via T.l2
   },
   selectedValueLabel: {
     fontSize: 12,
-    color: '#3B82F6',
+    color: '#4F8CFF',
     fontWeight: '600',
   },
   selectedValueAmt: {
     fontSize: 15,
-    color: '#1E40AF',
+    color: '#4F8CFF',
     fontWeight: '800',
     letterSpacing: -0.3,
   },
 
   // FIX 8 — Quick tools
   toolsCard: {
-    backgroundColor: '#ffffff', borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: '#e2e8f0',
-    shadowColor: '#0f172a', shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
+    borderRadius: 16, padding: 16,
+    borderWidth: 1,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 10, elevation: 2,
+    // backgroundColor and borderColor applied inline via T
   },
   toolsGrid: {
     flexDirection: 'row',
@@ -1432,9 +1437,9 @@ const st = StyleSheet.create({
   toolLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
     textAlign: 'center',
     lineHeight: 14,
+    // color applied inline via T.t2
   },
 
   // FIX 9 — FAB

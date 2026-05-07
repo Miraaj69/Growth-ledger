@@ -48,6 +48,20 @@ export const LIGHT = {
   t4:       '#CBD5E1',
 };
 
+export const GOLDEN = {
+  mode: 'golden',
+  bg:       '#1A1200',   // deep warm black
+  l1:       '#2A1E00',   // card background — rich gold-tinted dark
+  l2:       '#362800',   // elevated card
+  l3:       '#453400',   // pressed / tag
+  border:   'rgba(212,170,58,0.18)',
+  borderHi: 'rgba(212,170,58,0.32)',
+  t1:       '#FFE082',   // headings — warm gold
+  t2:       '#C9A227',   // subheadings
+  t3:       '#8B7030',   // captions
+  t4:       '#3D2E00',   // dividers / disabled
+};
+
 // ══════════════════════════════════════════════════════════
 // SEMANTIC COLORS — theme-invariant, meaningful usage only
 // ══════════════════════════════════════════════════════════

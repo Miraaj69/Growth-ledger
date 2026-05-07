@@ -24,21 +24,21 @@
       "package": "com.khushi69.growthledger"
     },
     "extra": {
-      "eas": {
-        "projectId": "26595c8e-e2d4-4844-a7a8-c6f02d039bbc"
-      }
+      "eas": { "projectId": "26595c8e-e2d4-4844-a7a8-c6f02d039bbc" }
     },
     "owner": "khushi69",
     "plugins": [
       "expo-font",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#000000",
-          "image": "./assets/splash.png",
-          "resizeMode": "contain"
-        }
-      ]
-    ]
+      ["expo-splash-screen", {
+        "backgroundColor": "#000000",
+        "image": "./assets/splash.png",
+        "resizeMode": "contain"
+      }]
+    ],
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": ["react-native-chart-kit"]
+      }
+    }
   }
 }
